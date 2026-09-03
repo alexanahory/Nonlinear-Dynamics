@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cobweb Diagram — Nonlinear Dynamics</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --panel: #111318;
+    --border: #1e2230;
+    --accent: #00e5ff;
+    --accent2: #ff4d6d;
+    --accent3: #b8ff57;
+    --text: #e8eaf0;
+    --muted: #5a6080;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  h1 { font-size: 16px; font-weight: 800; }
+  h1 span { color: var(--accent); }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+    background: rgba(184,255,87,0.08);
+    border: 1px solid rgba(184,255,87,0.2);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ── MAIN ROW ── */
+  .main {
+    display: flex;
+    flex: 1;
+    min-height: 0; /* crucial: lets flex children shrink below content size */
+  }
+
+  /* ── LEFT PANEL ── */
+  .controls {
+    width: 270px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;   /* FIX #3: scrollable */
+    overflow-x: hidden;
+  }
+
+  .controls::-webkit-scrollbar { width: 4px; }
+  .controls::-webkit-scrollbar-track { background: transparent; }
+  .controls::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 7px; }
+
+  label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  input[type="text"], input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus { border-color: var(--accent); }
+
+  .presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+
+  .preset-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    padding: 6px 4px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.05); }
+
+  .range-row { display: flex; gap: 7px; }
+  .range-row input { flex: 1; }
+
+  .run-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .run-btn:hover { background: #33ecff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,229,255,0.3); }
+  .run-btn:active { transform: translateY(0); }
+
+  .clear-btn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .clear-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .speed-row { display: flex; align-items: center; gap: 10px; }
+  .speed-row input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+
+  .iter-control { display: flex; align-items: center; gap: 10px; }
+  .iter-control input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+
+  .val-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); }
+
+  .error-msg {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent2);
+    min-height: 14px;
+  }
+
+  /* ── CANVAS AREA ── */
+  .canvas-area {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+  }
+
+  .canvas-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  /* ── RIGHT IC BAR ── */
+  .ic-bar {
+    width: 66px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 0;
+    gap: 8px;
+  }
+
+  .ic-bar-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .ic-value-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+    background: rgba(184,255,87,0.07);
+    border: 1px solid rgba(184,255,87,0.18);
+    border-radius: 5px;
+    padding: 5px 3px;
+    width: 54px;
+    text-align: center;
+  }
+
+  .ic-slider-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    min-height: 0;
+    gap: 6px;
+  }
+
+  .ic-limit {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+  }
+
+  .ic-slider-track {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    width: 100%;
+  }
+
+  input#ic-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    width: 28px;
+    height: 100%;
+    accent-color: var(--accent3);
+    cursor: pointer;
+  }
+
+  /* ── ORBIT PANEL ── */
+  .orbit-panel {
+    width: 160px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .orbit-header {
+    padding: 12px 12px 8px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .orbit-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .orbit-list::-webkit-scrollbar { width: 3px; }
+  .orbit-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .orbit-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+  }
+  .orbit-n { color: var(--muted); }
+  .orbit-x { color: var(--text); }
+  .orbit-row.current .orbit-x { color: var(--accent3); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Nonlinear Dynamics Lab</div>
+  <h1>Cobweb <span>Diagram</span></h1>
+  <div class="badge">x_{n+1} = f(x_n)</div>
+</header>
+
+<div class="main">
+
+  <!-- LEFT CONTROLS -->
+  <div class="controls">
+
+    <div>
+      <div class="section-label">Map function f(x)</div>
+      <div class="field-group">
+        <label>f(x) =</label>
+        <input type="text" id="func-input" value="3.7 * x * (1 - x)" />
+        <div class="error-msg" id="func-error"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Presets</div>
+      <div class="presets">
+        <button class="preset-btn" data-f="3.7 * x * (1 - x)"        data-xmin="0"    data-xmax="1">Logistic<br>r = 3.7</button>
+        <button class="preset-btn" data-f="3.2 * x * (1 - x)"        data-xmin="0"    data-xmax="1">Logistic<br>r = 3.2</button>
+        <button class="preset-btn" data-f="2.5 * x * (1 - x)"        data-xmin="0"    data-xmax="1">Logistic<br>r = 2.5</button>
+        <button class="preset-btn" data-f="1 - 2 * x * x"            data-xmin="-1.5" data-xmax="1.5">Quadratic<br>c = -2</button>
+        <button class="preset-btn" data-f="sin(PI * x)"               data-xmin="0"    data-xmax="1">sin(πx)</button>
+        <button class="preset-btn" data-f="x * exp(2.5 * (1 - x))"   data-xmin="0"    data-xmax="4">Ricker</button>
+        <button class="preset-btn" data-f="x * x - 1.755"            data-xmin="-2.5" data-xmax="2.5">Quadratic<br>c = -1.755</button>
+        <button class="preset-btn" data-f="x < 0.5 ? 2*x : 2*(1-x)" data-xmin="0"    data-xmax="1">Tent<br>map</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="section-label">Plot range</div>
+      <div class="field-group">
+        <label>x  [min, max]</label>
+        <div class="range-row">
+          <input type="number" id="xmin" value="0"  step="0.1" />
+          <input type="number" id="xmax" value="1"  step="0.1" />
+        </div>
+        <label>y  [min, max]</label>
+        <div class="range-row">
+          <input type="number" id="ymin" value="0"  step="0.1" />
+          <input type="number" id="ymax" value="1"  step="0.1" />
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Iterations</div>
+      <div class="iter-control">
+        <input type="range" id="iter-slider" min="1" max="200" value="40" />
+        <span class="val-badge" id="iter-val">40</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Animation speed</div>
+      <div class="speed-row">
+        <input type="range" id="speed-slider" min="1" max="12" value="3" />
+        <span class="val-badge" id="speed-val">3</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Initial condition x₀</div>
+      <input type="number" id="ic-input" value="0.2" step="0.001" />
+    </div>
+
+    <button class="run-btn" id="run-btn">&#9654;  ANIMATE</button>
+    <button class="clear-btn" id="clear-btn">&#10005;  Clear</button>
+
+  </div><!-- end .controls -->
+
+  <!-- CANVAS -->
+  <div class="canvas-area">
+    <canvas id="main-canvas"></canvas>
+    <div class="canvas-hint" id="canvas-hint">click diagram to set x&#x2080;</div>
+  </div>
+
+  <!-- RIGHT IC BAR -->
+  <div class="ic-bar">
+    <div class="ic-bar-title">x&#x2080;</div>
+    <div class="ic-value-display" id="ic-display">0.200</div>
+    <div class="ic-slider-wrap">
+      <div class="ic-limit" id="ic-max-label">1.0</div>
+      <div class="ic-slider-track">
+        <input type="range" id="ic-slider" min="0" max="1" step="0.001" value="0.2" />
+      </div>
+      <div class="ic-limit" id="ic-min-label">0.0</div>
+    </div>
+  </div>
+
+  <!-- ORBIT TABLE -->
+  <div class="orbit-panel">
+    <div class="orbit-header">Orbit</div>
+    <div class="orbit-list" id="orbit-list"></div>
+  </div>
+
+</div><!-- end .main -->
+
+<script>
+// ─────────────────────────────────────────────
+//  DOM refs
+// ─────────────────────────────────────────────
+const canvas      = document.getElementById('main-canvas');
+const ctx         = canvas.getContext('2d');
+const funcInput   = document.getElementById('func-input');
+const funcError   = document.getElementById('func-error');
+const xminIn      = document.getElementById('xmin');
+const xmaxIn      = document.getElementById('xmax');
+const yminIn      = document.getElementById('ymin');
+const ymaxIn      = document.getElementById('ymax');
+const iterSlider  = document.getElementById('iter-slider');
+const iterVal     = document.getElementById('iter-val');
+const speedSlider = document.getElementById('speed-slider');
+const speedVal    = document.getElementById('speed-val');
+const icInput     = document.getElementById('ic-input');
+const icSlider    = document.getElementById('ic-slider');
+const icDisplay   = document.getElementById('ic-display');
+const icMinLabel  = document.getElementById('ic-min-label');
+const icMaxLabel  = document.getElementById('ic-max-label');
+const runBtn      = document.getElementById('run-btn');
+const clearBtn    = document.getElementById('clear-btn');
+const orbitList   = document.getElementById('orbit-list');
+const canvasHint  = document.getElementById('canvas-hint');
+
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+let animId    = null;
+let cobwebPts = [];
+let orbitVals = [];
+let drawStep  = 0;
+
+// ─────────────────────────────────────────────
+//  FIX #1 — compile f(x)
+//  Remove "use strict" so that `with(Math){...}`
+//  works, making sin, cos, exp, PI etc. available
+//  directly in user expressions.
+// ─────────────────────────────────────────────
+function compileF(expr) {
+  try {
+    const fn = new Function('x', 'with(Math){ return (' + expr + '); }');
+    const test = fn(0.5);
+    if (!isFinite(test) && !isNaN(test)) throw new Error('returned non-finite at x=0.5');
+    funcError.textContent = '';
+    return fn;
+  } catch (e) {
+    funcError.textContent = '\u26a0  ' + e.message;
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Coordinate transforms
+// ─────────────────────────────────────────────
+const PAD = 52;
+
+function toCanvas(xv, yv) {
+  const W = canvas.width, H = canvas.height;
+  const xmin = +xminIn.value, xmax = +xmaxIn.value;
+  const ymin = +yminIn.value, ymax = +ymaxIn.value;
+  return [
+    PAD + (xv - xmin) / (xmax - xmin) * (W - 2 * PAD),
+    H - PAD - (yv - ymin) / (ymax - ymin) * (H - 2 * PAD)
+  ];
+}
+
+function fromCanvas(px, py) {
+  const W = canvas.width, H = canvas.height;
+  const xmin = +xminIn.value, xmax = +xmaxIn.value;
+  const ymin = +yminIn.value, ymax = +ymaxIn.value;
+  return [
+    xmin + (px - PAD) / (W - 2 * PAD) * (xmax - xmin),
+    ymin + (H - PAD - py) / (H - 2 * PAD) * (ymax - ymin)
+  ];
+}
+
+// ─────────────────────────────────────────────
+//  Draw static layer: grid, axes, curve, diagonal
+// ─────────────────────────────────────────────
+function drawBackground(fn) {
+  const W = canvas.width, H = canvas.height;
+  const xmin = +xminIn.value, xmax = +xmaxIn.value;
+  const ymin = +yminIn.value, ymax = +ymaxIn.value;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0c10';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  const nGrid = 8;
+  ctx.strokeStyle = '#161a24';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= nGrid; i++) {
+    const xv = xmin + i / nGrid * (xmax - xmin);
+    const yv = ymin + i / nGrid * (ymax - ymin);
+    let [ax, ay] = toCanvas(xv, ymin); let [bx, by] = toCanvas(xv, ymax);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    [ax, ay] = toCanvas(xmin, yv); [bx, by] = toCanvas(xmax, yv);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  }
+
+  // Border
+  const [bx0, by0] = toCanvas(xmin, ymin);
+  const [bx1, by1] = toCanvas(xmax, ymax);
+  ctx.strokeStyle = '#2a3050';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(bx0, by1, bx1 - bx0, by0 - by1);
+
+  // Zero axis lines
+  ctx.strokeStyle = '#2a3560';
+  ctx.lineWidth = 1;
+  if (ymin <= 0 && ymax >= 0) {
+    const [ax, ay] = toCanvas(xmin, 0), [bx, by] = toCanvas(xmax, 0);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  }
+  if (xmin <= 0 && xmax >= 0) {
+    const [ax, ay] = toCanvas(0, ymin), [bx, by] = toCanvas(0, ymax);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  }
+
+  // Tick labels
+  ctx.fillStyle = '#3a4565';
+  ctx.font = '10px "Space Mono", monospace';
+  const nTick = 5;
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= nTick; i++) {
+    const xv = xmin + i / nTick * (xmax - xmin);
+    const [px, py] = toCanvas(xv, ymin);
+    ctx.fillText(xv.toFixed(2), px, py + 16);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= nTick; i++) {
+    const yv = ymin + i / nTick * (ymax - ymin);
+    const [px, py] = toCanvas(xmin, yv);
+    ctx.fillText(yv.toFixed(2), px - 6, py + 4);
+  }
+
+  // Diagonal y = x
+  const dlo = Math.max(xmin, ymin), dhi = Math.min(xmax, ymax);
+  if (dlo < dhi) {
+    const [dx0, dy0] = toCanvas(dlo, dlo), [dx1, dy1] = toCanvas(dhi, dhi);
+    ctx.strokeStyle = 'rgba(100,120,210,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath(); ctx.moveTo(dx0, dy0); ctx.lineTo(dx1, dy1); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Curve of f(x)  ← was broken before; now works because compileF uses with(Math)
+  if (!fn) return;
+  ctx.strokeStyle = '#ff4d6d';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = 'rgba(255,77,109,0.55)';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  let penDown = false;
+  const N = 800;
+  for (let i = 0; i <= N; i++) {
+    const xv = xmin + i / N * (xmax - xmin);
+    let yv;
+    try { yv = fn(xv); } catch (e) { penDown = false; continue; }
+    if (!isFinite(yv) || isNaN(yv)) { penDown = false; continue; }
+    const [px, py] = toCanvas(xv, yv);
+    if (!penDown) { ctx.moveTo(px, py); penDown = true; }
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+// ─────────────────────────────────────────────
+//  Compute cobweb path
+// ─────────────────────────────────────────────
+function computeCobweb(x0, fn, nIter) {
+  // The zigzag: start at (x0, x0) on the diagonal, then
+  //   vertical   (x0, x0) -> (x0, f(x0))
+  //   horizontal (x0, f(x0)) -> (f(x0), f(x0))
+  //   ... repeat
+  const pts = [[x0, x0]];
+  const orb = [x0];
+  let x = x0;
+  for (let i = 0; i < nIter; i++) {
+    let fx;
+    try { fx = fn(x); } catch (e) { break; }
+    if (!isFinite(fx) || isNaN(fx)) break;
+    pts.push([x, fx]);   // vertical stroke
+    pts.push([fx, fx]);  // horizontal stroke back to diagonal
+    orb.push(fx);
+    x = fx;
+  }
+  return { pts, orb };
+}
+
+// ─────────────────────────────────────────────
+//  Draw cobweb segments up to index `upTo`
+// ─────────────────────────────────────────────
+function drawCobwebUpTo(pts, upTo) {
+  if (!pts || upTo < 1) return;
+  const n = Math.min(upTo, pts.length - 1);
+  const total = pts.length - 2;
+
+  ctx.lineWidth = 1.8;
+  for (let i = 0; i < n; i++) {
+    const t = total > 0 ? i / total : 1;
+    const alpha = 0.2 + 0.8 * t;
+    ctx.strokeStyle = 'rgba(0,229,255,' + alpha + ')';
+    ctx.shadowColor = 'rgba(0,229,255,0.3)';
+    ctx.shadowBlur = 5;
+    const [x1, y1] = toCanvas(pts[i][0], pts[i][1]);
+    const [x2, y2] = toCanvas(pts[i + 1][0], pts[i + 1][1]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+
+  // current position dot (bright green)
+  const [lx, ly] = toCanvas(pts[n][0], pts[n][1]);
+  ctx.fillStyle = '#b8ff57';
+  ctx.shadowColor = '#b8ff57';
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.arc(lx, ly, 5.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // start dot (dimmer)
+  const [sx, sy] = toCanvas(pts[0][0], pts[0][1]);
+  ctx.fillStyle = 'rgba(184,255,87,0.35)';
+  ctx.beginPath();
+  ctx.arc(sx, sy, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ─────────────────────────────────────────────
+//  FIX #2 — Animated cobweb drawing
+// ─────────────────────────────────────────────
+function startAnimation() {
+  stopAnimation();
+  const fn = compileF(funcInput.value);
+  if (!fn) return;
+
+  resize();
+
+  const x0    = +icInput.value;
+  const nIter = +iterSlider.value;
+
+  const { pts, orb } = computeCobweb(x0, fn, nIter);
+  cobwebPts = pts;
+  orbitVals = orb;
+  drawStep  = 0;
+
+  renderOrbitTable(orb, -1);
+
+  // speed slider 1-12 → ms per segment (slow to fast)
+  // slider=1 → ~500ms/seg, slider=12 → ~16ms/seg
+  function msPerSeg() {
+    const s = +speedSlider.value;
+    return Math.round(500 / Math.pow(s, 1.5));
+  }
+
+  let lastTs = null;
+  let accMs  = 0;
+
+  function frame(ts) {
+    if (lastTs === null) lastTs = ts;
+    accMs += ts - lastTs;
+    lastTs = ts;
+
+    const delay = msPerSeg();
+    const steps = Math.max(0, Math.floor(accMs / delay));
+    if (steps > 0) {
+      accMs -= steps * delay;
+      drawStep = Math.min(drawStep + steps, pts.length - 1);
+      drawBackground(fn);
+      drawCobwebUpTo(pts, drawStep);
+      const orbitIdx = Math.floor(drawStep / 2);
+      renderOrbitTable(orb, orbitIdx);
+    }
+
+    if (drawStep < pts.length - 1) {
+      animId = requestAnimationFrame(frame);
+    } else {
+      animId = null;
+      runBtn.textContent = '\u25b6  ANIMATE';
+    }
+  }
+
+  runBtn.textContent = '\u25a0  STOP';
+  animId = requestAnimationFrame(frame);
+}
+
+function stopAnimation() {
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  runBtn.textContent = '\u25b6  ANIMATE';
+}
+
+// ─────────────────────────────────────────────
+//  Static full draw (no animation)
+// ─────────────────────────────────────────────
+function drawStatic() {
+  stopAnimation();
+  resize();
+  const fn = compileF(funcInput.value);
+  drawBackground(fn);
+  if (!fn) return;
+  const x0    = +icInput.value;
+  const nIter = +iterSlider.value;
+  const { pts, orb } = computeCobweb(x0, fn, nIter);
+  cobwebPts = pts;
+  orbitVals = orb;
+  drawCobwebUpTo(pts, pts.length - 1);
+  renderOrbitTable(orb, orb.length - 1);
+}
+
+// ─────────────────────────────────────────────
+//  Orbit table render
+// ─────────────────────────────────────────────
+function renderOrbitTable(orb, currentIdx) {
+  orbitList.innerHTML = '';
+  orb.forEach((xv, i) => {
+    const row = document.createElement('div');
+    row.className = 'orbit-row' + (i === currentIdx ? ' current' : '');
+    row.innerHTML =
+      '<span class="orbit-n">x<sub>' + i + '</sub></span>' +
+      '<span class="orbit-x">' + xv.toFixed(5) + '</span>';
+    orbitList.appendChild(row);
+  });
+  if (currentIdx >= 0) {
+    const rows = orbitList.querySelectorAll('.orbit-row');
+    if (rows[currentIdx]) rows[currentIdx].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Resize canvas to fill its container
+// ─────────────────────────────────────────────
+function resize() {
+  const area = canvas.parentElement;
+  canvas.width  = area.clientWidth;
+  canvas.height = area.clientHeight;
+}
+
+// ─────────────────────────────────────────────
+//  IC slider / input sync
+// ─────────────────────────────────────────────
+function syncSliderRange() {
+  const xmin = +xminIn.value, xmax = +xmaxIn.value;
+  icSlider.min  = xmin;
+  icSlider.max  = xmax;
+  icSlider.step = (xmax - xmin) / 1000;
+  icMinLabel.textContent = xmin.toFixed(2);
+  icMaxLabel.textContent = xmax.toFixed(2);
+  let ic = Math.max(xmin, Math.min(xmax, +icInput.value));
+  icInput.value         = ic;
+  icSlider.value        = ic;
+  icDisplay.textContent = ic.toFixed(3);
+}
+
+function setIC(v) {
+  const xmin = +xminIn.value, xmax = +xmaxIn.value;
+  v = Math.max(xmin, Math.min(xmax, +v));
+  icInput.value         = v;
+  icSlider.value        = v;
+  icDisplay.textContent = v.toFixed(3);
+  drawStatic();
+}
+
+// ─────────────────────────────────────────────
+//  Event wiring
+// ─────────────────────────────────────────────
+icSlider.addEventListener('input',  () => setIC(icSlider.value));
+icInput.addEventListener('input',   () => setIC(icInput.value));
+
+iterSlider.addEventListener('input', () => {
+  iterVal.textContent = iterSlider.value;
+  drawStatic();
+});
+
+speedSlider.addEventListener('input', () => {
+  speedVal.textContent = speedSlider.value;
+});
+
+runBtn.addEventListener('click', () => {
+  if (animId) { stopAnimation(); drawStatic(); }
+  else startAnimation();
+});
+
+clearBtn.addEventListener('click', () => {
+  stopAnimation();
+  resize();
+  const fn = compileF(funcInput.value);
+  drawBackground(fn);
+  orbitList.innerHTML = '';
+  cobwebPts = [];
+});
+
+funcInput.addEventListener('input', () => drawStatic());
+
+[xminIn, xmaxIn, yminIn, ymaxIn].forEach(el => {
+  el.addEventListener('change', () => { syncSliderRange(); drawStatic(); });
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const [xv] = fromCanvas(e.clientX - rect.left, e.clientY - rect.top);
+  setIC(xv);
+  canvasHint.textContent = 'x\u2080 = ' + (+icInput.value).toFixed(4);
+});
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    funcInput.value = btn.dataset.f;
+    xminIn.value    = btn.dataset.xmin;
+    xmaxIn.value    = btn.dataset.xmax;
+    yminIn.value    = btn.dataset.xmin;
+    ymaxIn.value    = btn.dataset.xmax;
+    syncSliderRange();
+    drawStatic();
+  });
+});
+
+window.addEventListener('resize', () => drawStatic());
+
+// ─────────────────────────────────────────────
+//  Boot
+// ─────────────────────────────────────────────
+syncSliderRange();
+drawStatic();
+</script>
+</body>
+</html>

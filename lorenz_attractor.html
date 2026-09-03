@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lorenz Attractor · Chaos Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #020408;
+    --border: #0d2035;
+    --accent1: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #a8ff78;
+    --text: #c8dde8;
+    --text-dim: #3d5c72;
+    --glow: rgba(0,212,255,0.15);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  /* Full-viewport column layout — nothing overflows the window */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* Starfield */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(0,212,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 70%, rgba(168,255,120,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 15%, rgba(255,107,53,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 55%, rgba(0,212,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 85%, rgba(123,47,255,0.4) 0%, transparent 100%);
+  }
+
+  /* ── Header ── */
+  header {
+    flex: 0 0 auto; z-index: 10; position: relative;
+    padding: 11px 22px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(2,4,8,0.9); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 1.05rem; letter-spacing: 0.08em;
+    color: var(--accent1); text-transform: uppercase;
+  }
+  .logo span { color: var(--text-dim); font-weight: 400; }
+  .status-bar { display: flex; gap: 18px; font-size: 0.6rem; letter-spacing: 0.1em; color: var(--text-dim); }
+  .status-item { display: flex; align-items: center; gap: 5px; }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent3); box-shadow: 0 0 6px var(--accent3);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  /* ── Middle row: canvas + sidebar ── */
+  .middle {
+    flex: 1 1 0;   /* takes all space between header and footer */
+    min-height: 0; /* CRITICAL: allows children to shrink */
+    display: flex;
+    position: relative; z-index: 1;
+  }
+
+  /* Canvas */
+  #canvas-wrap {
+    flex: 1 1 0; min-width: 0; position: relative; overflow: hidden;
+  }
+  canvas#lorenz { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas#lorenz:active { cursor: grabbing; }
+  .canvas-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(2,4,8,0.5) 100%);
+  }
+  .corner { position: absolute; width: 26px; height: 26px; pointer-events: none; }
+  .corner-tl { top:13px; left:13px;   border-top:1px solid var(--accent1); border-left:1px solid var(--accent1); }
+  .corner-tr { top:13px; right:13px;  border-top:1px solid var(--accent1); border-right:1px solid var(--accent1); }
+  .corner-bl { bottom:13px; left:13px;  border-bottom:1px solid var(--accent1); border-left:1px solid var(--accent1); }
+  .corner-br { bottom:13px; right:13px; border-bottom:1px solid var(--accent1); border-right:1px solid var(--accent1); }
+
+  /* Sidebar */
+  .sidebar {
+    flex: 0 0 296px;
+    min-height: 0;      /* allow shrink so it never overflows */
+    overflow-y: auto;   /* scroll inside the sidebar independently */
+    background: rgba(7,17,29,0.97);
+    border-left: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+  }
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section { padding: 15px 17px; border-bottom: 1px solid var(--border); }
+
+  .section-label {
+    font-family: 'Syne', sans-serif; font-size: 0.57rem; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent1);
+    margin-bottom: 13px; display: flex; align-items: center; gap: 7px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+  .param-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 11px; }
+  .param-header { display: flex; justify-content: space-between; align-items: center; }
+  .param-name { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.03em; }
+  .param-val  { font-size: 0.7rem; color: var(--accent1); font-weight: 700; min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  input[type=range] {
+    width: 100%; height: 3px; appearance: none;
+    background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none; width: 13px; height: 13px; border-radius: 50%;
+    background: var(--accent1); box-shadow: 0 0 7px var(--accent1); cursor: pointer;
+  }
+  input[type=range].accent2::-webkit-slider-thumb { background: var(--accent2); box-shadow: 0 0 7px var(--accent2); }
+  input[type=range].accent3::-webkit-slider-thumb { background: var(--accent3); box-shadow: 0 0 7px var(--accent3); }
+  input[type=range].purple::-webkit-slider-thumb  { background: #a855f7; box-shadow: 0 0 7px #a855f7; }
+
+  .btn-row { display: flex; gap: 6px; margin-top: 6px; }
+  button {
+    flex: 1; padding: 7px 0; border: 1px solid var(--border); background: transparent;
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.58rem;
+    letter-spacing: 0.09em; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.18s;
+  }
+  button:hover { border-color: var(--accent1); color: var(--accent1); box-shadow: 0 0 9px var(--glow), inset 0 0 9px var(--glow); }
+  .btn-reset { border-color: var(--accent2) !important; color: var(--accent2) !important; }
+  .btn-reset:hover { background: rgba(255,107,53,0.08) !important; }
+
+  .info-box {
+    background: rgba(0,212,255,0.03); border: 1px solid var(--border); border-radius: 2px;
+    padding: 9px; font-size: 0.59rem; line-height: 1.85; color: var(--text-dim);
+  }
+  .info-box .eq { color: var(--text); font-style: italic; }
+
+  .chaos-meter { margin-top: 7px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .chaos-fill  { height: 100%; border-radius: 2px; transition: width 0.5s, background 0.5s; }
+  .chaos-label { display: flex; justify-content: space-between; font-size: 0.53rem; color: var(--text-dim); margin-top: 4px; }
+  .lyapunov    { font-size: 0.6rem; color: var(--text-dim); margin-top: 7px; }
+  .lyapunov span { color: var(--accent3); }
+
+  .speed-dots { display: flex; gap: 5px; margin-top: 5px; }
+  .speed-dot {
+    width: 10px; height: 10px; border: 1px solid var(--border);
+    border-radius: 50%; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .speed-dot.on { background: var(--accent1); border-color: var(--accent1); box-shadow: 0 0 5px var(--accent1); }
+
+  .axes-legend { display: flex; gap: 11px; margin-top: 9px; font-size: 0.57rem; }
+  .ax { display: flex; align-items: center; gap: 5px; color: var(--text-dim); }
+  .ax-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── Footer ── */
+  footer {
+    flex: 0 0 auto; z-index: 10; position: relative;
+    text-align: center; font-size: 0.5rem; letter-spacing: 0.15em; color: var(--text-dim);
+    padding: 7px 16px; border-top: 1px solid var(--border);
+    background: rgba(2,4,8,0.92);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Lorenz <span>·</span> Chaos Explorer</div>
+  <div class="status-bar">
+    <div class="status-item"><div class="status-dot"></div><span id="status-txt">INTEGRATING</span></div>
+    <div class="status-item">RK4</div>
+    <div class="status-item"><span id="step-count">0</span>&thinsp;STEPS</div>
+  </div>
+</header>
+
+<!-- MIDDLE -->
+<div class="middle">
+
+  <!-- 3-D canvas -->
+  <div id="canvas-wrap">
+    <canvas id="lorenz"></canvas>
+    <div class="canvas-overlay"></div>
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+  </div>
+
+  <!-- Control sidebar (scrolls independently) -->
+  <div class="sidebar">
+
+    <div class="section">
+      <div class="section-label">System Parameters</div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">σ — Prandtl</span><span class="param-val" id="val-sigma">10.000</span></div>
+        <input type="range" id="sl-sigma" class="accent1" min="0.1" max="30" step="0.1" value="10">
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">ρ — Rayleigh</span><span class="param-val" id="val-r">28.000</span></div>
+        <input type="range" id="sl-r" class="accent2" min="0.1" max="60" step="0.1" value="28">
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">β — geometric</span><span class="param-val" id="val-b">2.667</span></div>
+        <input type="range" id="sl-b" class="accent3" min="0.1" max="10" step="0.01" value="2.667">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Initial Conditions</div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">x₀</span><span class="param-val" id="val-x0">0.100</span></div>
+        <input type="range" id="sl-x0" class="purple" min="-30" max="30" step="0.1" value="0.1">
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">y₀</span><span class="param-val" id="val-y0">0.100</span></div>
+        <input type="range" id="sl-y0" class="purple" min="-30" max="30" step="0.1" value="0.1">
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">z₀</span><span class="param-val" id="val-z0">0.100</span></div>
+        <input type="range" id="sl-z0" class="purple" min="0.1" max="50" step="0.1" value="0.1">
+      </div>
+      <div class="btn-row">
+        <button onclick="resetDefault()">◈ Chaotic Default</button>
+        <button class="btn-reset" onclick="resetSystem()">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Integration</div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">Step size Δt</span><span class="param-val" id="val-dt">0.0050</span></div>
+        <input type="range" id="sl-dt" min="0.001" max="0.02" step="0.001" value="0.005">
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">Trail length</span><span class="param-val" id="val-trail">4000</span></div>
+        <input type="range" id="sl-trail" min="200" max="10000" step="100" value="4000">
+      </div>
+      <div style="font-size:0.58rem;color:var(--text-dim);margin-bottom:5px;">Simulation speed</div>
+      <div class="speed-dots">
+        <div class="speed-dot on" data-speed="1"></div>
+        <div class="speed-dot"   data-speed="2"></div>
+        <div class="speed-dot"   data-speed="4"></div>
+        <div class="speed-dot"   data-speed="8"></div>
+        <div class="speed-dot"   data-speed="16"></div>
+      </div>
+      <div class="btn-row" style="margin-top:11px;">
+        <button id="btn-pause" onclick="togglePause()">⏸ Pause</button>
+        <button onclick="clearTrail()">⊘ Clear Trail</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Chaos Analysis</div>
+      <div class="chaos-meter"><div class="chaos-fill" id="chaos-fill" style="width:75%;background:linear-gradient(90deg,#00d4ff,#ff6b35)"></div></div>
+      <div class="chaos-label"><span>PERIODIC</span><span id="chaos-regime">CHAOTIC</span><span>TURBULENT</span></div>
+      <div class="lyapunov">λ₁ ≈ <span id="lyap-val">+0.906</span> (max Lyapunov exp.)</div>
+      <div class="info-box" style="margin-top:9px;">
+        <div class="eq">ẋ = σ(y − x)</div>
+        <div class="eq">ẏ = x(ρ − z) − y</div>
+        <div class="eq">ż = xy − βz</div>
+        <br><span>4th-order Runge-Kutta. Sensitive dependence on initial conditions.</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Equilibrium Points</div>
+      <div class="info-box" id="eq-box"></div>
+      <div style="margin-top:7px;font-size:0.54rem;color:var(--text-dim);line-height:1.75;">
+        <span style="color:#ffd700">●</span> E₀ always exists.<br>
+        <span style="color:#ffd700">●</span> C± appear when ρ &gt; 1.<br>
+        <span style="color:#ffd700">●</span> ρ = 1 → pitchfork bifurcation.
+      </div>
+    </div>
+
+    <div class="section" style="border-bottom:none;">
+      <div class="section-label">View Controls</div>
+      <div style="font-size:0.58rem;color:var(--text-dim);margin-bottom:7px;">Drag to rotate · Scroll / pinch to zoom</div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">Brightness</span><span class="param-val" id="val-bright">1.0</span></div>
+        <input type="range" id="sl-bright" min="0.2" max="3" step="0.1" value="1.0">
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">Trail fade</span><span class="param-val" id="val-fade">0.5</span></div>
+        <input type="range" id="sl-fade" min="0.1" max="1" step="0.05" value="0.5">
+      </div>
+      <div class="btn-row">
+        <button onclick="setView('top')">Top</button>
+        <button onclick="setView('front')">Front</button>
+        <button onclick="setView('side')">Side</button>
+        <button onclick="setView('iso')">Iso</button>
+      </div>
+      <div class="axes-legend">
+        <div class="ax"><div class="ax-dot" style="background:#ff4444"></div>X</div>
+        <div class="ax"><div class="ax-dot" style="background:#44ff44"></div>Y</div>
+        <div class="ax"><div class="ax-dot" style="background:#4488ff"></div>Z</div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /middle -->
+
+<!-- FOOTER -->
+<footer>
+  LORENZ ATTRACTOR &nbsp;·&nbsp; 4TH-ORDER RUNGE-KUTTA INTEGRATION &nbsp;·&nbsp; INTERACTIVE 3D VISUALIZATION
+</footer>
+
+<script>
+'use strict';
+
+// ─── Parameters ───────────────────────────────────────────────────────────
+let sigma = 10, rho = 28, beta = 8/3;
+let x0 = 0.1, y0 = 0.1, z0 = 0.1;
+let dt = 0.005, trailLen = 4000, simSpeed = 1;
+let paused = false, brightness = 1.0, fadeAmount = 0.5;
+
+// ─── RK4 ──────────────────────────────────────────────────────────────────
+function lorenzDeriv(x, y, z) {
+  return [sigma*(y-x), x*(rho-z)-y, x*y-beta*z];
+}
+function rk4Step(x, y, z, h) {
+  const [k1x,k1y,k1z] = lorenzDeriv(x, y, z);
+  const [k2x,k2y,k2z] = lorenzDeriv(x+h/2*k1x, y+h/2*k1y, z+h/2*k1z);
+  const [k3x,k3y,k3z] = lorenzDeriv(x+h/2*k2x, y+h/2*k2y, z+h/2*k2z);
+  const [k4x,k4y,k4z] = lorenzDeriv(x+h*k3x,   y+h*k3y,   z+h*k3z);
+  return [
+    x + h/6*(k1x+2*k2x+2*k3x+k4x),
+    y + h/6*(k1y+2*k2y+2*k3y+k4y),
+    z + h/6*(k1z+2*k2z+2*k3z+k4z),
+  ];
+}
+
+// ─── State ────────────────────────────────────────────────────────────────
+let trail = [], cx = x0, cy = y0, cz = z0, stepCount = 0;
+
+function resetSystem() { cx=x0; cy=y0; cz=z0; trail=[]; stepCount=0; }
+function clearTrail()  { trail=[]; }
+function togglePause() {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent  = paused ? '▶ Resume' : '⏸ Pause';
+  document.getElementById('status-txt').textContent = paused ? 'PAUSED'   : 'INTEGRATING';
+}
+function resetDefault() {
+  sigma=10; rho=28; beta=8/3; x0=0.1; y0=0.1; z0=0.1;
+  ['sl-sigma','sl-r','sl-b','sl-x0','sl-y0','sl-z0'].forEach((id,i) => {
+    document.getElementById(id).value = [10, 28, (8/3).toFixed(3), 0.1, 0.1, 0.1][i];
+  });
+  updateLabels(); resetSystem(); updateChaosDisplay(); updateEqBox();
+}
+
+// ─── Canvas ───────────────────────────────────────────────────────────────
+const canvas = document.getElementById('lorenz');
+const ctx    = canvas.getContext('2d');
+let W, H;
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  W = canvas.width  = wrap.clientWidth;
+  H = canvas.height = wrap.clientHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── Camera ───────────────────────────────────────────────────────────────
+// camScale = pixels per world-unit (zoom).
+// Perspective FOV is fixed — scrolling changes camScale only, no distortion.
+let camTheta = 0.6, camPhi = 0.4;
+let camScale = 7;           // initial zoom: comfortable for σ=10 ρ=28 β=8/3
+const CAM_FOV = 350;        // perspective focal length (fixed)
+
+// ── Rotation drag ──
+let isDragging = false, lastMX = 0, lastMY = 0;
+canvas.addEventListener('mousedown', e => {
+  isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  camTheta += (e.clientX - lastMX) * 0.007;
+  camPhi = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, camPhi + (e.clientY-lastMY)*0.007));
+  lastMX = e.clientX; lastMY = e.clientY;
+});
+
+// ── Scroll zoom (multiplicative — smooth on all devices) ──
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  // deltaMode 1 = lines, 0 = pixels, 2 = pages
+  const px = e.deltaMode === 1 ? e.deltaY * 20 : (e.deltaMode === 2 ? e.deltaY * 200 : e.deltaY);
+  camScale *= Math.exp(-px * 0.0012);
+  camScale = Math.max(0.8, Math.min(60, camScale));
+}, { passive: false });
+
+// ── Pinch zoom ──
+let lastPinchDist = null;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    isDragging = true; lastPinchDist = null;
+    lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    lastPinchDist = Math.hypot(e.touches[1].clientX-e.touches[0].clientX, e.touches[1].clientY-e.touches[0].clientY);
+  }
+}, { passive: true });
+canvas.addEventListener('touchend', () => { isDragging = false; lastPinchDist = null; }, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    camTheta += (e.touches[0].clientX - lastMX) * 0.007;
+    camPhi = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, camPhi + (e.touches[0].clientY-lastMY)*0.007));
+    lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[1].clientX-e.touches[0].clientX, e.touches[1].clientY-e.touches[0].clientY);
+    if (lastPinchDist) { camScale = Math.max(0.8, Math.min(60, camScale * d/lastPinchDist)); }
+    lastPinchDist = d;
+  }
+}, { passive: false });
+
+function setView(v) {
+  if (v==='top')   { camTheta=0;         camPhi=Math.PI/2-0.05; }
+  if (v==='front') { camTheta=0;         camPhi=0; }
+  if (v==='side')  { camTheta=Math.PI/2; camPhi=0; }
+  if (v==='iso')   { camTheta=0.6;       camPhi=0.4; }
+}
+
+// ─── Projection ───────────────────────────────────────────────────────────
+// Mathematical origin = (0,0,0). VIEW_OFFSET_Y nudges the screen centre so
+// the classical attractor (z ≈ 0–50) stays nicely framed.
+const VIEW_OFFSET_Y = -55; // pixels upward
+
+function project(x, y, z) {
+  const cosT = Math.cos(camTheta), sinT = Math.sin(camTheta);
+  const cosP = Math.cos(camPhi),   sinP = Math.sin(camPhi);
+  // Rotate
+  const rx =  x*cosT + y*sinT;
+  const ry = -x*sinT*sinP + y*cosT*sinP + z*cosP;
+  const rz = -x*sinT*cosP + y*cosT*cosP - z*sinP;
+  // Perspective
+  const s = camScale * CAM_FOV / (CAM_FOV + rz);
+  return [W/2 + rx*s, H/2 + VIEW_OFFSET_Y - ry*s, s];
+}
+
+// ─── Equilibria ───────────────────────────────────────────────────────────
+function getEquilibria() {
+  const eq = [{ x:0, y:0, z:0, label:'E\u2080' }];
+  if (rho > 1) {
+    const r = Math.sqrt(beta*(rho-1));
+    eq.push({ x: r, y: r, z:rho-1, label:'C\u208a' });
+    eq.push({ x:-r, y:-r, z:rho-1, label:'C\u208b' });
+  }
+  return eq;
+}
+
+function drawEquilibria() {
+  ctx.globalAlpha = 1;
+  for (const eq of getEquilibria()) {
+    const [sx, sy] = project(eq.x, eq.y, eq.z);
+    const r = 7; // fixed screen size — easier to see
+
+    // Outer glow
+    ctx.beginPath(); ctx.arc(sx, sy, r+6, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,215,0,0.13)'; ctx.lineWidth = 8; ctx.stroke();
+
+    // Yellow ring
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2);
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.7; ctx.stroke();
+
+    // Centre dot
+    ctx.beginPath(); ctx.arc(sx, sy, 2.3, 0, Math.PI*2);
+    ctx.fillStyle = '#ffd700'; ctx.fill();
+
+    // Label
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#ffd700'; ctx.font = '9px Space Mono,monospace';
+    ctx.fillText(eq.label, sx + r + 5, sy + 4);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ─── Axes ─────────────────────────────────────────────────────────────────
+function drawAxes() {
+  const axLen = 22;
+  const [ox, oy] = project(0,0,0);
+  const axes = [
+    { pos:[axLen,0,0], neg:[-axLen,0,0], label:'X', color:'#ff4444' },
+    { pos:[0,axLen,0], neg:[0,-axLen,0], label:'Y', color:'#44ff44' },
+    { pos:[0,0,axLen], neg:[0,0,-axLen], label:'Z', color:'#4488ff' },
+  ];
+  for (const ax of axes) {
+    const [px,py] = project(...ax.pos);
+    const [nx,ny] = project(...ax.neg);
+    // Negative — dashed dim
+    ctx.setLineDash([4,7]); ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(nx,ny);
+    ctx.strokeStyle=ax.color; ctx.lineWidth=0.7; ctx.globalAlpha=0.13; ctx.stroke();
+    ctx.setLineDash([]);
+    // Positive
+    ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(px,py);
+    ctx.strokeStyle=ax.color; ctx.lineWidth=1.3; ctx.globalAlpha=0.4; ctx.stroke();
+    // Label
+    ctx.globalAlpha=0.65; ctx.fillStyle=ax.color; ctx.font='11px Space Mono,monospace';
+    ctx.fillText(ax.label, px+4, py+4);
+  }
+  // Origin dot
+  ctx.beginPath(); ctx.arc(ox,oy,3,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.globalAlpha=1; ctx.fill();
+  ctx.globalAlpha=1;
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (!paused) {
+    for (let i = 0; i < simSpeed; i++) {
+      const [nx,ny,nz] = rk4Step(cx,cy,cz,dt);
+      if (!isFinite(nx)||!isFinite(ny)||!isFinite(nz)) { resetSystem(); break; }
+      cx=nx; cy=ny; cz=nz;
+      trail.push([cx,cy,cz]);
+      if (trail.length > trailLen) trail.shift();
+      stepCount++;
+    }
+    document.getElementById('step-count').textContent = stepCount.toLocaleString();
+  }
+
+  // Partial clear (motion-blur feel)
+  ctx.fillStyle = 'rgba(2,4,8,0.30)';
+  ctx.fillRect(0,0,W,H);
+
+  drawAxes();
+  drawEquilibria();
+
+  // Trail
+  for (let i = 1; i < trail.length; i++) {
+    const [x1,y1,z1] = trail[i-1];
+    const [x2,y2,z2] = trail[i];
+    const [sx1,sy1]  = project(x1,y1,z1);
+    const [sx2,sy2]  = project(x2,y2,z2);
+
+    const t = i / trail.length;
+    const alpha = Math.pow(t, 1.15) * fadeAmount * brightness;
+    const hue   = (camTheta*60 + t*240 + stepCount*0.03) % 360;
+    ctx.beginPath(); ctx.moveTo(sx1,sy1); ctx.lineTo(sx2,sy2);
+    ctx.strokeStyle = `hsla(${hue|0},85%,60%,${alpha.toFixed(3)})`;
+    ctx.lineWidth = 0.7 + t * 1.5;
+    ctx.stroke();
+  }
+
+  // Live particle glow
+  if (trail.length > 0) {
+    const [hx,hy] = project(cx,cy,cz);
+    const grd = ctx.createRadialGradient(hx,hy,0,hx,hy,11*brightness);
+    grd.addColorStop(0, 'rgba(255,255,255,0.92)');
+    grd.addColorStop(0.3,'rgba(0,212,255,0.6)');
+    grd.addColorStop(1,  'rgba(0,212,255,0)');
+    ctx.beginPath(); ctx.arc(hx,hy,11*brightness,0,Math.PI*2);
+    ctx.fillStyle=grd; ctx.fill();
+  }
+}
+
+// ─── UI bindings ──────────────────────────────────────────────────────────
+function updateLabels() {
+  document.getElementById('val-sigma').textContent = sigma.toFixed(3);
+  document.getElementById('val-r').textContent     = rho.toFixed(3);
+  document.getElementById('val-b').textContent     = beta.toFixed(3);
+  document.getElementById('val-x0').textContent    = parseFloat(x0).toFixed(3);
+  document.getElementById('val-y0').textContent    = parseFloat(y0).toFixed(3);
+  document.getElementById('val-z0').textContent    = parseFloat(z0).toFixed(3);
+  document.getElementById('val-dt').textContent    = dt.toFixed(4);
+  document.getElementById('val-trail').textContent = trailLen;
+  document.getElementById('val-bright').textContent= brightness.toFixed(1);
+  document.getElementById('val-fade').textContent  = fadeAmount.toFixed(2);
+}
+
+function bind(id, cb) {
+  document.getElementById(id).addEventListener('input', function() { cb(parseFloat(this.value)); });
+}
+bind('sl-sigma', v=>{sigma=v;  document.getElementById('val-sigma').textContent=v.toFixed(3); resetSystem();updateChaosDisplay();updateEqBox();});
+bind('sl-r',     v=>{rho=v;    document.getElementById('val-r').textContent=v.toFixed(3);     resetSystem();updateChaosDisplay();updateEqBox();});
+bind('sl-b',     v=>{beta=v;   document.getElementById('val-b').textContent=v.toFixed(3);     resetSystem();updateChaosDisplay();updateEqBox();});
+bind('sl-x0',    v=>{x0=v;     document.getElementById('val-x0').textContent=v.toFixed(3);    resetSystem();});
+bind('sl-y0',    v=>{y0=v;     document.getElementById('val-y0').textContent=v.toFixed(3);    resetSystem();});
+bind('sl-z0',    v=>{z0=v;     document.getElementById('val-z0').textContent=v.toFixed(3);    resetSystem();});
+bind('sl-dt',    v=>{dt=v;     document.getElementById('val-dt').textContent=v.toFixed(4);});
+bind('sl-trail', v=>{trailLen=v;document.getElementById('val-trail').textContent=v;});
+bind('sl-bright',v=>{brightness=v;document.getElementById('val-bright').textContent=v.toFixed(1);});
+bind('sl-fade',  v=>{fadeAmount=v;document.getElementById('val-fade').textContent=v.toFixed(2);});
+
+document.querySelectorAll('.speed-dot').forEach(dot => {
+  dot.addEventListener('click', function() {
+    simSpeed = parseInt(this.dataset.speed);
+    document.querySelectorAll('.speed-dot').forEach(d =>
+      d.classList.toggle('on', parseInt(d.dataset.speed) <= simSpeed));
+  });
+});
+
+// ─── Chaos display ────────────────────────────────────────────────────────
+function estimateLyapunov() {
+  if (rho < 1)      return -1.5;
+  if (rho < 13.926) return -0.5 + (rho/13.926)*0.3;
+  if (rho < 24.06)  return -0.2 + (rho-13.926)/10.134*0.4;
+  return 0.906*(sigma/10)*Math.sqrt(rho/28)*Math.sqrt(beta/(8/3));
+}
+function updateChaosDisplay() {
+  const lam = estimateLyapunov();
+  document.getElementById('lyap-val').textContent = (lam>=0?'+':'')+lam.toFixed(3);
+  let lvl, regime;
+  if      (lam < -0.5) { lvl=0.05; regime='STABLE'; }
+  else if (lam <    0) { lvl=0.20; regime='PERIODIC'; }
+  else if (lam <  0.5) { lvl=0.45; regime='QUASI-PERIODIC'; }
+  else if (lam <  1.0) { lvl=0.72; regime='CHAOTIC'; }
+  else                 { lvl=0.95; regime='HYPERCHAOTIC'; }
+  document.getElementById('chaos-fill').style.width = (lvl*100)+'%';
+  document.getElementById('chaos-regime').textContent = regime;
+  document.getElementById('chaos-fill').style.background =
+    lam > 0 ? `linear-gradient(90deg,hsl(190,80%,50%),hsl(${Math.min(30+lam*40,60)},90%,55%))`
+            : `linear-gradient(90deg,hsl(240,70%,50%),hsl(200,70%,55%))`;
+}
+function updateEqBox() {
+  document.getElementById('eq-box').innerHTML = getEquilibria().map(eq =>
+    `<div style="margin-bottom:4px;">
+       <span style="color:#ffd700;font-weight:700">${eq.label}</span>
+       <span style="color:var(--text-dim)"> = (${eq.x.toFixed(3)},\u2009${eq.y.toFixed(3)},\u2009${eq.z.toFixed(3)})</span>
+     </div>`
+  ).join('');
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+updateLabels();
+updateChaosDisplay();
+updateEqBox();
+animate();
+</script>
+</body>
+</html>

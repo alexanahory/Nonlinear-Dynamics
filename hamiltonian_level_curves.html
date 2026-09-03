@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Level Curves · H(x,y) = x²y − xy²</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #07090f;
+    --panel:     #0c0f1a;
+    --border:    #1a2235;
+    --teal:      #00e5c8;
+    --teal-dim:  #00e5c840;
+    --text:      #b8cce0;
+    --text-dim:  #3a5070;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 22px 16px 30px;
+    gap: 18px;
+  }
+
+  header { text-align: center; }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.25rem, 3.5vw, 1.85rem);
+    color: #e8f0fa;
+  }
+
+  header h1 em { color: var(--teal); font-style: italic; }
+
+  header p {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    width: 100%;
+    max-width: 860px;
+    box-shadow: 0 10px 60px #000c;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  canvas { display: block; width: 100%; height: 100%; }
+
+  .badge {
+    position: absolute;
+    top: 10px; left: 12px;
+    background: #07090fcc;
+    border: 1px solid var(--teal-dim);
+    border-radius: 6px;
+    padding: 5px 11px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--teal);
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+  }
+
+  .controls {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .slider-row label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    width: 18px;
+    text-align: center;
+    font-style: italic;
+    flex-shrink: 0;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    transition: height 0.15s;
+    background: linear-gradient(to right, var(--teal) var(--pct,50%), var(--border) var(--pct,50%));
+  }
+
+  input[type=range]:hover { height: 6px; }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--teal);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 8px var(--teal-dim);
+    cursor: grab;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  input[type=range]:active::-webkit-slider-thumb {
+    transform: scale(1.3);
+    box-shadow: 0 0 18px var(--teal);
+    cursor: grabbing;
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--teal);
+    border: 2px solid var(--bg);
+    cursor: grab;
+  }
+
+  .val-display {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--teal);
+    width: 88px;
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+
+  button:hover { color: var(--teal); border-color: var(--teal-dim); background: #00e5c811; }
+  button.active { color: var(--teal); border-color: var(--teal); background: #00e5c818; }
+
+  footer-note {
+    display: block;
+    font-size: 0.63rem;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 0.05em;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Level Curves of <em>H(x, y) = x²y − xy²</em></h1>
+  <p>Drag the slider · explore H(x,y) = h</p>
+</header>
+
+<div class="card">
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="cv"></canvas>
+    <div class="badge" id="badge">h = 0.000</div>
+  </div>
+
+  <div class="controls">
+    <div class="slider-row">
+      <label>h</label>
+      <input type="range" id="sliderH" min="-0.5" max="0.5" step="0.001" value="0">
+      <span class="val-display" id="valH">h = 0.000</span>
+    </div>
+    <div class="btn-row">
+      <button id="btnSurf" class="active">Surface</button>
+      <button id="btnGrid">Isolines</button>
+      <button id="btnCrit" class="active">Geometry</button>
+      <button id="btnReset">Reset</button>
+    </div>
+  </div>
+</div>
+
+<footer-note>
+  H(x,y) = xy(x−y) &nbsp;·&nbsp; H = 0 along x=0, y=0, and x=y (dashed white lines)<br>
+  Only critical point: (0,0) — a degenerate monkey saddle &nbsp;·&nbsp; Arrow keys nudge h (Shift for finer steps)
+</footer-note>
+
+<script>
+// ─── Domain ───────────────────────────────────────────────────────────────────
+// H(x,y) = x²y - xy² = xy(x-y)
+// On [-1.5,1.5]² max value ≈ at corners: 1.5²·1.5 - 1.5·1.5² = 0 (corner where x=y)
+// Max of xy(x-y): by symmetry max near (1, 0.5) → 1·0.5·0.5 = 0.25, or (1.5,0.75)→~0.42
+const DOM = 1.5;
+const X0=-DOM, X1=DOM, Y0=-DOM, Y1=DOM;
+const HRANGE = 0.45; // colormap clamp
+
+const cv     = document.getElementById('cv');
+const ctx    = cv.getContext('2d');
+const wrap   = document.getElementById('canvasWrap');
+const badge  = document.getElementById('badge');
+const valH   = document.getElementById('valH');
+const slH    = document.getElementById('sliderH');
+const btnSurf= document.getElementById('btnSurf');
+const btnGrid= document.getElementById('btnGrid');
+const btnCrit= document.getElementById('btnCrit');
+const btnRst = document.getElementById('btnReset');
+
+let h=0, showSurf=true, showGrid=false, showCrit=true;
+
+// ─── H function ───────────────────────────────────────────────────────────────
+function Hf(x,y) { return x*x*y - x*y*y; } // xy(x-y)
+
+// ─── Coordinate maps ──────────────────────────────────────────────────────────
+function xPx(x){ return (x-X0)/(X1-X0)*cv.width; }
+function yPx(y){ return (1-(y-Y0)/(Y1-Y0))*cv.height; }
+
+// ─── Plasma colormap ──────────────────────────────────────────────────────────
+function plasma(t){
+  const s=[[13,8,135],[84,2,163],[139,10,165],[185,50,137],[219,92,104],[244,136,73],[254,188,43],[240,249,33]];
+  t=Math.max(0,Math.min(1,t));
+  const n=s.length-1, i=Math.min(Math.floor(t*n),n-1), f=t*n-i;
+  const a=s[i],b=s[i+1];
+  return [Math.round(a[0]+f*(b[0]-a[0])),Math.round(a[1]+f*(b[1]-a[1])),Math.round(a[2]+f*(b[2]-a[2]))];
+}
+
+// ─── Surface cache ────────────────────────────────────────────────────────────
+let surfCache=null, scW=0, scH=0;
+function buildSurface(){
+  const W=cv.width, H2=cv.height;
+  if(W===scW&&H2===scH&&surfCache) return;
+  const img=ctx.createImageData(W,H2); const d=img.data;
+  for(let py=0;py<H2;py++){
+    const y=Y1-(py/H2)*(Y1-Y0);
+    for(let px=0;px<W;px++){
+      const x=X0+(px/W)*(X1-X0);
+      const v=Hf(x,y);
+      const t=0.5+0.5*Math.max(-1,Math.min(1,v/HRANGE));
+      const [r,g,b]=plasma(t);
+      const idx=(py*W+px)*4;
+      d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=215;
+    }
+  }
+  surfCache=img; scW=W; scH=H2;
+}
+
+// ─── Marching Squares ─────────────────────────────────────────────────────────
+function march(level,cols=500,rows=500){
+  const dx=(X1-X0)/cols, dy=(Y1-Y0)/rows;
+  const g=new Float32Array((cols+1)*(rows+1));
+  for(let j=0;j<=rows;j++){
+    const y=Y0+j*dy;
+    for(let i=0;i<=cols;i++) g[j*(cols+1)+i]=Hf(X0+i*dx,y)-level;
+  }
+  function lp(va,vb,xa,ya,xb,yb){const t=va/(va-vb);return[xa+t*(xb-xa),ya+t*(yb-ya)];}
+  const segs=[];
+  for(let j=0;j<rows;j++){
+    const y0c=Y0+j*dy,y1c=y0c+dy;
+    for(let i=0;i<cols;i++){
+      const x0c=X0+i*dx,x1c=x0c+dx;
+      const v00=g[j*(cols+1)+i],v10=g[j*(cols+1)+i+1];
+      const v01=g[(j+1)*(cols+1)+i],v11=g[(j+1)*(cols+1)+i+1];
+      const idx=(v00>0?1:0)|(v10>0?2:0)|(v11>0?4:0)|(v01>0?8:0);
+      if(idx===0||idx===15) continue;
+      const mB=()=>lp(v00,v10,x0c,y0c,x1c,y0c);
+      const mR=()=>lp(v10,v11,x1c,y0c,x1c,y1c);
+      const mT=()=>lp(v01,v11,x0c,y1c,x1c,y1c);
+      const mL=()=>lp(v00,v01,x0c,y0c,x0c,y1c);
+      let p=[];
+      switch(idx){
+        case 1:case 14:p=[mB(),mL()];break;
+        case 2:case 13:p=[mB(),mR()];break;
+        case 3:case 12:p=[mL(),mR()];break;
+        case 4:case 11:p=[mR(),mT()];break;
+        case 6:case  9:p=[mB(),mT()];break;
+        case 7:case  8:p=[mL(),mT()];break;
+        case 5: p=[mB(),mR(),mL(),mT()];break;
+        case 10:p=[mB(),mL(),mR(),mT()];break;
+      }
+      for(let k=0;k<p.length;k+=2){
+        const[ax,ay]=p[k],[bx,by]=p[k+1];
+        segs.push([xPx(ax),yPx(ay),xPx(bx),yPx(by)]);
+      }
+    }
+  }
+  return segs;
+}
+
+// ─── Grid cache ───────────────────────────────────────────────────────────────
+let gridCache=null,gcW=0,gcH=0;
+function buildGrid(){
+  if(cv.width===gcW&&cv.height===gcH&&gridCache) return;
+  const lvls=[];
+  for(let v=-0.5;v<=0.5;v+=0.025) if(Math.abs(v)>0.002) lvls.push(parseFloat(v.toFixed(3)));
+  gridCache=lvls.map(l=>march(l,250,250));
+  gcW=cv.width; gcH=cv.height;
+}
+
+// ─── Axes ─────────────────────────────────────────────────────────────────────
+function drawAxes(){
+  const W=cv.width,H2=cv.height;
+  const fs=Math.max(9,Math.round(W*0.016));
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,0.20)'; ctx.lineWidth=1;
+  const xm=xPx(0),ym=yPx(0);
+  ctx.beginPath();ctx.moveTo(0,ym);ctx.lineTo(W,ym);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(xm,0);ctx.lineTo(xm,H2);ctx.stroke();
+  ctx.fillStyle='rgba(180,200,220,0.40)';
+  ctx.font=`${fs}px JetBrains Mono`;
+  const ticks=[-1.5,-1,-0.5,0.5,1,1.5];
+  ctx.textAlign='center';
+  ticks.forEach(t=>{
+    const px=xPx(t);
+    ctx.fillText(t.toFixed(1),px,ym+fs*1.6);
+    ctx.beginPath();ctx.moveTo(px,ym-3);ctx.lineTo(px,ym+3);ctx.stroke();
+  });
+  ctx.textAlign='right';
+  ticks.forEach(t=>{
+    const py=yPx(t);
+    ctx.fillText(t.toFixed(1),xm-5,py+fs*0.35);
+    ctx.beginPath();ctx.moveTo(xm-3,py);ctx.lineTo(xm+3,py);ctx.stroke();
+  });
+  ctx.fillStyle='rgba(200,220,240,0.55)';
+  ctx.textAlign='center'; ctx.fillText('x',W-10,ym+fs*1.6);
+  ctx.textAlign='left';   ctx.fillText('y',xm+6,14);
+  ctx.restore();
+}
+
+// ─── Geometry overlay (zero set lines + critical pt) ─────────────────────────
+function drawGeometry(){
+  const W=cv.width,H2=cv.height;
+  ctx.save();
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle='rgba(255,255,255,0.28)';
+  ctx.lineWidth=1.2;
+  // x=0
+  ctx.beginPath();ctx.moveTo(xPx(0),0);ctx.lineTo(xPx(0),H2);ctx.stroke();
+  // y=0
+  ctx.beginPath();ctx.moveTo(0,yPx(0));ctx.lineTo(W,yPx(0));ctx.stroke();
+  // x=y
+  ctx.beginPath();ctx.moveTo(xPx(X0),yPx(X0));ctx.lineTo(xPx(X1),yPx(X1));ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Labels for the zero lines
+  const fs=Math.max(8,Math.round(W*0.015));
+  ctx.font=`${fs}px JetBrains Mono`;
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.textAlign='left';
+  ctx.fillText('x = y', xPx(0.55)+4, yPx(0.55)-5);
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.textAlign='center';
+  ctx.fillText('H = 0 on these lines', W/2, H2-8);
+
+  // Origin marker (degenerate monkey saddle)
+  const ox=xPx(0),oy=yPx(0);
+  ctx.beginPath();ctx.arc(ox,oy,6,0,Math.PI*2);
+  ctx.fillStyle='#ff4f6a66';ctx.fill();
+  ctx.strokeStyle='#ff4f6a';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='#ff4f6a';
+  ctx.font=`bold ${fs}px JetBrains Mono`;
+  ctx.textAlign='left';
+  ctx.fillText('(0,0) monkey saddle',ox+9,oy-7);
+  ctx.restore();
+}
+
+// ─── Colorbar ─────────────────────────────────────────────────────────────────
+function drawColorbar(){
+  const W=cv.width,H2=cv.height;
+  const cbW=Math.round(W*0.022),cbX=W-cbW-4,cbY=10,cbH=H2-20;
+  for(let py=0;py<cbH;py++){
+    const t=1-py/cbH;
+    const[r,g,b]=plasma(t);
+    ctx.fillStyle=`rgb(${r},${g},${b})`;
+    ctx.fillRect(cbX,cbY+py,cbW,1);
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5;
+  ctx.strokeRect(cbX,cbY,cbW,cbH);
+  // h marker
+  const cl=Math.max(-HRANGE,Math.min(HRANGE,h));
+  const my=cbY+cbH*(1-(cl+HRANGE)/(2*HRANGE));
+  ctx.fillStyle='#00e5c8';
+  ctx.beginPath();ctx.moveTo(cbX-6,my);ctx.lineTo(cbX,my-4);ctx.lineTo(cbX,my+4);ctx.closePath();ctx.fill();
+  // labels
+  ctx.fillStyle='rgba(180,200,220,0.40)';
+  const fs=Math.max(8,Math.round(W*0.015));
+  ctx.font=`${fs}px JetBrains Mono`;ctx.textAlign='right';
+  ctx.fillText(`+${HRANGE.toFixed(2)}`,cbX-8,cbY+8);
+  ctx.fillText('0',cbX-8,cbY+cbH/2+4);
+  ctx.fillText(`−${HRANGE.toFixed(2)}`,cbX-8,cbY+cbH);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render(){
+  const W=cv.width,H2=cv.height;
+  ctx.clearRect(0,0,W,H2);
+  ctx.fillStyle='#07090f';ctx.fillRect(0,0,W,H2);
+
+  if(showSurf){buildSurface();ctx.putImageData(surfCache,0,0);}
+
+  if(showGrid){
+    buildGrid();
+    ctx.save();
+    ctx.strokeStyle='rgba(255,255,255,0.13)';ctx.lineWidth=0.6;
+    for(const segs of gridCache) for(const[x1,y1,x2,y2] of segs){
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawAxes();
+  if(showCrit) drawGeometry();
+
+  // Active level curve
+  const segs=march(h);
+  if(segs.length){
+    ctx.save();ctx.lineCap='round';
+    ctx.strokeStyle='rgba(0,229,200,0.18)';ctx.lineWidth=9;
+    for(const[x1,y1,x2,y2] of segs){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+    ctx.strokeStyle='#00e5c8';ctx.lineWidth=2.2;
+    for(const[x1,y1,x2,y2] of segs){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+    ctx.restore();
+  }
+
+  drawColorbar();
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function updateSlider(){
+  const min=parseFloat(slH.min),max=parseFloat(slH.max);
+  slH.style.setProperty('--pct',(h-min)/(max-min)*100+'%');
+}
+
+function setH(val){
+  h=val;
+  const s=h>=0?`h = +${h.toFixed(3)}`:`h = ${h.toFixed(3)}`;
+  badge.textContent=s; valH.textContent=s;
+  updateSlider(); render();
+}
+
+slH.addEventListener('input',()=>setH(parseFloat(slH.value)));
+btnSurf.addEventListener('click',()=>{showSurf=!showSurf;btnSurf.classList.toggle('active',showSurf);render();});
+btnGrid.addEventListener('click',()=>{showGrid=!showGrid;btnGrid.classList.toggle('active',showGrid);render();});
+btnCrit.addEventListener('click',()=>{showCrit=!showCrit;btnCrit.classList.toggle('active',showCrit);render();});
+btnRst.addEventListener('click',()=>{slH.value='0';setH(0);});
+
+document.addEventListener('keydown',e=>{
+  const step=e.shiftKey?0.001:0.005;
+  if(e.key==='ArrowRight'||e.key==='ArrowUp'){const v=Math.min(0.5,Math.round((h+step)*1000)/1000);slH.value=v;setH(v);}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){const v=Math.max(-0.5,Math.round((h-step)*1000)/1000);slH.value=v;setH(v);}
+});
+
+function resize(){
+  const r=wrap.getBoundingClientRect();
+  cv.width=Math.round(r.width*devicePixelRatio);
+  cv.height=Math.round(r.height*devicePixelRatio);
+  surfCache=null; gridCache=null;
+  render();
+}
+
+new ResizeObserver(resize).observe(wrap);
+resize(); setH(0);
+</script>
+</body>
+</html>

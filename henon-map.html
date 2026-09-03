@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hénon Map Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #08090d;
+    --panel: #0e1018;
+    --border: rgba(255,255,255,0.07);
+    --accent: #4af0c8;
+    --accent2: #7c6ef0;
+    --accent3: #f06e4a;
+    --text: #e8e9f0;
+    --muted: #5a5d6e;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── Layout ── */
+  #app {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 48px 1fr 32px;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ── Top bar ── */
+  #topbar {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    background: var(--panel);
+  }
+  #topbar .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+  }
+  #topbar .logo span { color: var(--muted); }
+  .divider { width: 1px; height: 18px; background: var(--border); }
+  #topbar .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    font-family: var(--mono);
+  }
+  .spacer { flex: 1; }
+  #iterCount {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  #iterCount b { color: var(--accent); }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .param-row {
+    margin-bottom: 14px;
+  }
+  .param-row:last-child { margin-bottom: 0; }
+  .param-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 7px;
+  }
+  .param-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+  .param-name sub { font-size: 9px; }
+  .param-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(74,240,200,0.5);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border: none; border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  /* Color presets */
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .preset-btn {
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+    position: relative;
+    overflow: hidden;
+  }
+  .preset-btn:hover { transform: scale(1.05); }
+  .preset-btn.active { border-color: var(--accent); box-shadow: 0 0 6px rgba(74,240,200,0.3); }
+
+  /* Color scheme buttons */
+  .scheme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .scheme-btn {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .scheme-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .scheme-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(74,240,200,0.06);
+  }
+
+  /* Info rows */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .info-cell {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .info-cell .label {
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .info-cell .value {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  /* Reset/actions */
+  .action-btn {
+    width: 100%;
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .action-btn:last-child { margin-bottom: 0; }
+  .action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(74,240,200,0.06);
+  }
+  .action-btn.danger:hover {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    background: rgba(240,110,74,0.06);
+  }
+
+  /* ── Canvas area ── */
+  #canvasWrap {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    cursor: crosshair;
+  }
+  canvas#henon {
+    position: absolute;
+    top: 0; left: 0;
+    image-rendering: pixelated;
+  }
+
+  /* Overlay crosshair coords */
+  #coords {
+    position: absolute;
+    bottom: 12px;
+    right: 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    pointer-events: none;
+    letter-spacing: 0.05em;
+    background: rgba(8,9,13,0.7);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* Zoom indicator */
+  #zoomBadge {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    pointer-events: none;
+    letter-spacing: 0.05em;
+    background: rgba(8,9,13,0.8);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(74,240,200,0.2);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #zoomBadge.visible { opacity: 1; }
+
+  /* Render spinner */
+  #spinner {
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.15s;
+    box-shadow: 0 0 6px var(--accent);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  #spinner.active { opacity: 1; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.5)} }
+
+  /* ── Status bar ── */
+  #statusbar {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 24px;
+  }
+  .status-item {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .status-item b { color: var(--text); }
+  .status-item.accent b { color: var(--accent); }
+
+  /* Hint overlay */
+  #hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 1s;
+  }
+  #hint.hidden { opacity: 0; }
+  #hint p {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    line-height: 2;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div class="logo">HÉNON <span>//</span> MAP EXPLORER</div>
+    <div class="divider"></div>
+    <div class="subtitle">strange attractor · fractal dim ≈ 1.26</div>
+    <div class="spacer"></div>
+    <div id="iterCount">rendering <b id="ptCount">50 000</b> pts</div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+
+    <div class="section">
+      <div class="section-title">Parameters</div>
+      <div class="param-row">
+        <div class="param-label">
+          <span class="param-name">a  <sub>(fold)</sub></span>
+          <span class="param-value" id="aDisplay">1.40</span>
+        </div>
+        <input type="range" id="aSlider" min="0.2" max="1.6" step="0.005" value="1.4">
+      </div>
+      <div class="param-row">
+        <div class="param-label">
+          <span class="param-name">b  <sub>(contraction)</sub></span>
+          <span class="param-value" id="bDisplay">0.30</span>
+        </div>
+        <input type="range" id="bSlider" min="0.0" max="0.6" step="0.005" value="0.3">
+      </div>
+      <div class="param-row">
+        <div class="param-label">
+          <span class="param-name">N  <sub>(points)</sub></span>
+          <span class="param-value" id="nDisplay">50 000</span>
+        </div>
+        <input type="range" id="nSlider" min="5000" max="200000" step="5000" value="50000">
+      </div>
+      <div class="param-row">
+        <div class="param-label">
+          <span class="param-name">Transient</span>
+          <span class="param-value" id="transDisplay">500</span>
+        </div>
+        <input type="range" id="transSlider" min="50" max="2000" step="50" value="500">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Color Scheme</div>
+      <div class="scheme-grid">
+        <button class="scheme-btn active" data-scheme="cyan">Cyan</button>
+        <button class="scheme-btn" data-scheme="plasma">Plasma</button>
+        <button class="scheme-btn" data-scheme="amber">Ember</button>
+        <button class="scheme-btn" data-scheme="ice">Ice</button>
+        <button class="scheme-btn" data-scheme="matrix">Matrix</button>
+        <button class="scheme-btn" data-scheme="coral">Coral</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Presets</div>
+      <div class="presets">
+        <div class="preset-btn active" data-a="1.4" data-b="0.3" title="Classic (a=1.4, b=0.3)" style="background:linear-gradient(135deg,#0a3 0%,#0cf 100%)"></div>
+        <div class="preset-btn" data-a="1.2" data-b="0.4" title="Wide (a=1.2, b=0.4)" style="background:linear-gradient(135deg,#60a 0%,#c04 100%)"></div>
+        <div class="preset-btn" data-a="1.1" data-b="0.2" title="Thin (a=1.1, b=0.2)" style="background:linear-gradient(135deg,#03c 0%,#0ac 100%)"></div>
+        <div class="preset-btn" data-a="0.9" data-b="0.3" title="Period-7 (a=0.9, b=0.3)" style="background:linear-gradient(135deg,#a50 0%,#f90 100%)"></div>
+        <div class="preset-btn" data-a="1.35" data-b="0.29" title="Near-classic" style="background:linear-gradient(135deg,#005 0%,#0cf 100%)"></div>
+        <div class="preset-btn" data-a="1.07" data-b="0.3" title="Period-4 (a=1.07)" style="background:linear-gradient(135deg,#400 0%,#f05 100%)"></div>
+        <div class="preset-btn" data-a="1.28" data-b="0.3" title="a=1.28" style="background:linear-gradient(135deg,#020 0%,#0f4 100%)"></div>
+        <div class="preset-btn" data-a="0.7" data-b="0.1" title="Fixed pt (a=0.7)" style="background:linear-gradient(135deg,#444 0%,#aaa 100%)"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Viewport</div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="label">X center</div><div class="value" id="viewXC">0.000</div></div>
+        <div class="info-cell"><div class="label">Y center</div><div class="value" id="viewYC">0.000</div></div>
+        <div class="info-cell"><div class="label">X range</div><div class="value" id="viewXR">—</div></div>
+        <div class="info-cell"><div class="label">Zoom</div><div class="value" id="viewZoom">1×</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Map Equations</div>
+      <div style="font-family:var(--mono);font-size:10px;line-height:2;color:var(--muted);">
+        x<sub style="font-size:8px">n+1</sub> = 1 − a·x<sub style="font-size:8px">n</sub>² + y<sub style="font-size:8px">n</sub><br>
+        y<sub style="font-size:8px">n+1</sub> = b·x<sub style="font-size:8px">n</sub><br>
+        <span style="color:rgba(255,255,255,0.25)">det(J) = b = 0.30</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Controls</div>
+      <button class="action-btn" id="resetViewBtn">Reset View</button>
+      <button class="action-btn" id="resetParamsBtn">Reset Params</button>
+      <button class="action-btn danger" id="exportBtn">Export PNG</button>
+    </div>
+
+  </div>
+
+  <!-- Canvas -->
+  <div id="canvasWrap">
+    <canvas id="henon"></canvas>
+    <div id="hint">
+      <p>scroll to zoom · drag to pan</p>
+      <p>use sliders to explore parameter space</p>
+    </div>
+    <div id="zoomBadge"></div>
+    <div id="spinner"></div>
+    <div id="coords">x: —, y: —</div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="statusbar">
+    <div class="status-item accent">a = <b id="sbA">1.400</b></div>
+    <div class="status-item accent">b = <b id="sbB">0.300</b></div>
+    <div class="status-item">Lyapunov ≈ <b>0.42</b></div>
+    <div class="status-item">fractal dim ≈ <b>1.26</b></div>
+    <div class="status-item">transient = <b id="sbTrans">500</b> steps</div>
+    <div class="status-item" style="margin-left:auto;">scroll to zoom · drag to pan</div>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('henon');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+
+// ── State ──
+let a = 1.4, b = 0.3, N = 50000, TRANS = 500;
+let scheme = 'cyan';
+
+// Viewport in data-space: center + half-width
+let vpCX = 0, vpCY = 0, vpHW = 2.0;
+
+let dragging = false, dragStartX, dragStartY, dragStartCX, dragStartCY;
+let renderTimer = null;
+let firstRender = true;
+
+// ── Canvas sizing ──
+function resize() {
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  scheduleRender(0);
+}
+
+// ── Color schemes ──
+const SCHEMES = {
+  cyan:   (t) => `hsla(${170 + t*20},${70+t*30}%,${40+t*55}%,${0.25+t*0.75})`,
+  plasma: (t) => `hsla(${280 - t*180},${80}%,${30+t*60}%,${0.2+t*0.8})`,
+  amber:  (t) => `hsla(${30 + t*15},${90}%,${35+t*55}%,${0.2+t*0.8})`,
+  ice:    (t) => `hsla(${200 + t*20},${50+t*40}%,${50+t*45}%,${0.2+t*0.8})`,
+  matrix: (t) => `hsla(${120},${60+t*40}%,${20+t*65}%,${0.15+t*0.85})`,
+  coral:  (t) => `hsla(${10 + t*30},${80+t*20}%,${40+t*50}%,${0.2+t*0.8})`,
+};
+
+// ── Compute Hénon ──
+function computeHenon() {
+  let x = 0, y = 0;
+  for (let i = 0; i < TRANS; i++) {
+    const xn = 1 - a * x * x + y;
+    const yn = b * x;
+    x = xn; y = yn;
+    if (!isFinite(x)) return null;
+  }
+  const xs = new Float64Array(N), ys = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    const xn = 1 - a * x * x + y;
+    const yn = b * x;
+    x = xn; y = yn;
+    if (!isFinite(x)) return null;
+    xs[i] = x; ys[i] = y;
+  }
+  return { xs, ys };
+}
+
+// ── Render ──
+function render() {
+  const W = canvas.width, H = canvas.height;
+  if (!W || !H) return;
+
+  document.getElementById('spinner').classList.add('active');
+
+  setTimeout(() => {
+    ctx.clearRect(0, 0, W, H);
+
+    const result = computeHenon();
+    if (!result) {
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.font = '13px Space Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('trajectory diverges — adjust parameters', W / 2, H / 2);
+      document.getElementById('spinner').classList.remove('active');
+      return;
+    }
+
+    const { xs, ys } = result;
+
+    // Aspect-correct mapping
+    const aspect = W / H;
+    const vpHH = vpHW / aspect;
+
+    const toScreenX = (x) => (x - (vpCX - vpHW)) / (2 * vpHW) * W;
+    const toScreenY = (y) => H - (y - (vpCY - vpHH)) / (2 * vpHH) * H;
+
+    // Use density-aware point size
+    const zoom = 2.0 / vpHW;
+    const dotR = Math.max(0.4, Math.min(1.8, 0.7 * Math.sqrt(zoom)));
+
+    const colorFn = SCHEMES[scheme] || SCHEMES.cyan;
+
+    // Draw points bucketed by index-fraction for color gradient
+    for (let i = 0; i < N; i++) {
+      const px = toScreenX(xs[i]);
+      const py = toScreenY(ys[i]);
+      if (px < -2 || px > W + 2 || py < -2 || py > H + 2) continue;
+      const t = i / N;
+      ctx.fillStyle = colorFn(t);
+      ctx.beginPath();
+      ctx.arc(px, py, dotR, 0, 6.283);
+      ctx.fill();
+    }
+
+    updateViewInfo();
+    document.getElementById('spinner').classList.remove('active');
+    if (firstRender) {
+      firstRender = false;
+      document.getElementById('hint').classList.add('hidden');
+    }
+  }, 10);
+}
+
+function scheduleRender(delay = 120) {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, delay);
+}
+
+// ── Viewport info ──
+function updateViewInfo() {
+  const aspect = canvas.width / canvas.height;
+  const vpHH = vpHW / aspect;
+  document.getElementById('viewXC').textContent = vpCX.toFixed(3);
+  document.getElementById('viewYC').textContent = vpCY.toFixed(3);
+  document.getElementById('viewXR').textContent = (vpHW * 2).toFixed(3);
+  const zoom = (2.0 / vpHW).toFixed(1);
+  document.getElementById('viewZoom').textContent = zoom + '×';
+  const badge = document.getElementById('zoomBadge');
+  badge.textContent = zoom + '×';
+  badge.classList.add('visible');
+  clearTimeout(badge._t);
+  badge._t = setTimeout(() => badge.classList.remove('visible'), 1500);
+}
+
+// ── Sliders ──
+function bindSlider(id, displayId, decimals, getter, setter, fmt) {
+  const el = document.getElementById(id);
+  const disp = document.getElementById(displayId);
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value);
+    setter(v);
+    disp.textContent = fmt ? fmt(v) : v.toFixed(decimals);
+    scheduleRender();
+  });
+}
+
+bindSlider('aSlider','aDisplay',2, ()=>a, v=>{ a=v; document.getElementById('sbA').textContent=v.toFixed(3); });
+bindSlider('bSlider','bDisplay',2, ()=>b, v=>{ b=v; document.getElementById('sbB').textContent=v.toFixed(3); });
+bindSlider('nSlider','nDisplay',0, ()=>N, v=>{ N=v; document.getElementById('ptCount').textContent=v.toLocaleString(); },
+           v => v.toLocaleString());
+bindSlider('transSlider','transDisplay',0, ()=>TRANS, v=>{ TRANS=v; document.getElementById('sbTrans').textContent=v; });
+
+// ── Color scheme ──
+document.querySelectorAll('.scheme-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.scheme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    scheme = btn.dataset.scheme;
+    scheduleRender(0);
+  });
+});
+
+// ── Presets ──
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    a = parseFloat(btn.dataset.a);
+    b = parseFloat(btn.dataset.b);
+    document.getElementById('aSlider').value = a;
+    document.getElementById('bSlider').value = b;
+    document.getElementById('aDisplay').textContent = a.toFixed(2);
+    document.getElementById('bDisplay').textContent = b.toFixed(2);
+    document.getElementById('sbA').textContent = a.toFixed(3);
+    document.getElementById('sbB').textContent = b.toFixed(3);
+    vpCX = 0; vpCY = 0; vpHW = 2.0;
+    scheduleRender(0);
+  });
+});
+
+// ── Scroll to zoom ──
+wrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = wrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const W = canvas.width, H = canvas.height;
+  const aspect = W / H;
+  const vpHH = vpHW / aspect;
+
+  // Mouse position in data space
+  const dx = (mx / W) * 2 * vpHW + (vpCX - vpHW);
+  const dy = (1 - my / H) * 2 * vpHH + (vpCY - vpHH);
+
+  const factor = e.deltaY > 0 ? 1.18 : 0.85;
+  vpHW = Math.max(0.0002, Math.min(4.0, vpHW * factor));
+
+  // Recentre so mouse stays fixed
+  const newVpHH = vpHW / aspect;
+  vpCX = dx - (mx / W - 0.5) * 2 * vpHW;
+  vpCY = dy - (0.5 - my / H) * 2 * newVpHH;
+
+  scheduleRender(80);
+}, { passive: false });
+
+// ── Drag to pan ──
+wrap.addEventListener('mousedown', (e) => {
+  dragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragStartCX = vpCX;
+  dragStartCY = vpCY;
+  wrap.style.cursor = 'grabbing';
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) {
+    // Update coord display
+    const rect = wrap.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const W = canvas.width, H = canvas.height;
+    const aspect = W / H;
+    const vpHH = vpHW / aspect;
+    const dx = (mx / W) * 2 * vpHW + (vpCX - vpHW);
+    const dy = (1 - my / H) * 2 * vpHH + (vpCY - vpHH);
+    document.getElementById('coords').textContent = `x: ${dx.toFixed(4)}, y: ${dy.toFixed(4)}`;
+    return;
+  }
+  const W = canvas.width, H = canvas.height;
+  const aspect = W / H;
+  const vpHH = vpHW / aspect;
+  const ddx = (e.clientX - dragStartX) / W * 2 * vpHW;
+  const ddy = (e.clientY - dragStartY) / H * 2 * vpHH;
+  vpCX = dragStartCX - ddx;
+  vpCY = dragStartCY + ddy;
+  scheduleRender(60);
+});
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  wrap.style.cursor = 'crosshair';
+});
+
+// Touch support
+let lastTouchDist = null;
+wrap.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    dragging = true;
+    dragStartX = e.touches[0].clientX;
+    dragStartY = e.touches[0].clientY;
+    dragStartCX = vpCX;
+    dragStartCY = vpCY;
+  }
+  if (e.touches.length === 2) {
+    dragging = false;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx*dx+dy*dy);
+  }
+}, { passive: true });
+wrap.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && dragging) {
+    const W = canvas.width, H = canvas.height;
+    const aspect = W / H;
+    const vpHH = vpHW / aspect;
+    const ddx = (e.touches[0].clientX - dragStartX) / W * 2 * vpHW;
+    const ddy = (e.touches[0].clientY - dragStartY) / H * 2 * vpHH;
+    vpCX = dragStartCX - ddx;
+    vpCY = dragStartCY + ddy;
+    scheduleRender(60);
+  }
+  if (e.touches.length === 2 && lastTouchDist) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    const factor = lastTouchDist / dist;
+    vpHW = Math.max(0.0002, Math.min(4.0, vpHW * factor));
+    lastTouchDist = dist;
+    scheduleRender(60);
+  }
+}, { passive: false });
+wrap.addEventListener('touchend', () => { dragging = false; lastTouchDist = null; });
+
+// ── Reset buttons ──
+document.getElementById('resetViewBtn').addEventListener('click', () => {
+  vpCX = 0; vpCY = 0; vpHW = 2.0;
+  scheduleRender(0);
+});
+document.getElementById('resetParamsBtn').addEventListener('click', () => {
+  a = 1.4; b = 0.3; N = 50000; TRANS = 500;
+  document.getElementById('aSlider').value = 1.4;
+  document.getElementById('bSlider').value = 0.3;
+  document.getElementById('nSlider').value = 50000;
+  document.getElementById('transSlider').value = 500;
+  document.getElementById('aDisplay').textContent = '1.40';
+  document.getElementById('bDisplay').textContent = '0.30';
+  document.getElementById('nDisplay').textContent = '50 000';
+  document.getElementById('transDisplay').textContent = '500';
+  document.getElementById('sbA').textContent = '1.400';
+  document.getElementById('sbB').textContent = '0.300';
+  document.getElementById('sbTrans').textContent = '500';
+  document.getElementById('ptCount').textContent = '50 000';
+  vpCX = 0; vpCY = 0; vpHW = 2.0;
+  scheduleRender(0);
+});
+
+// ── Export ──
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = `henon_a${a.toFixed(2)}_b${b.toFixed(2)}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+// ── Init ──
+const ro = new ResizeObserver(resize);
+ro.observe(wrap);
+resize();
+</script>
+</body>
+</html>
