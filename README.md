@@ -1,0 +1,1 @@
+The project contains different html files for the course of Nonlinear Dynamics I currently teach at IEU. It is composed of an index file containing accesses to all other files. The project is still work in progress.
