@@ -1,66 +1,757 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mathematical Animations Gallery</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 0 20px;
-            color: #333;
-            background-color: #f9f9f9;
-        }
-        h1 {
-            color: #111;
-            border-bottom: 2px solid #eaeaea;
-            padding-bottom: 10px;
-        }
-        p {
-            color: #666;
-            font-size: 1.1rem;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            margin: 12px 0;
-        }
-        a {
-            display: block;
-            color: #0969da;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 1.1rem;
-            padding: 10px;
-            background: white;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-        a:hover {
-            background: #f6f8fa;
-            border-color: #0969da;
-            transform: translateX(4px);
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nonlinear Dynamics: interactive animations · IE University</title>
+<meta name="description" content="Interactive animations for the Nonlinear Dynamics course at IE University. Open one in your browser: nothing to install.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ---------- IE University base tokens ---------- */
+:root {
+  --typography-fontfamilies-primary: "Montserrat", Arial, Helvetica, sans-serif;
+  --typography-fontfamilies-secondary: "PT Serif", Georgia, "Times New Roman", serif;
+
+  --color-primary-oceanblue: #000066;
+  --color-primary-seablue: #47BFFF;
+  --color-secondary-marineblue: #0032A0;
+  --color-secondary-electricblue: #0000DB;
+  --color-secondary-lightblue: #BDE8FF;
+  --color-grey-ieblack: #0F0F0F;
+  --color-grey-darkgrey: #434445;
+  --color-grey-middlegrey: #888A8C;
+  --color-grey-lightgrey: #BFC1C3;
+  --color-grey-iewhite: #F4F4F4;
+  --color-grey-white: #FFFFFF;
+  --color-school-law: #D90011;
+  --color-school-archdesign: #921AD4;
+  --color-school-humanities: #FF5C00;
+  --color-semantic-tangerine: #FF7B31;
+  --color-semantic-iceblue: #E6F7FF;
+  --color-semantic-alumniblue: #1B1A43;
+
+  /* ---------- semantic tokens (light) ---------- */
+  --page-bg: var(--color-grey-iewhite);
+  --surface: var(--color-grey-white);
+  --text: var(--color-grey-ieblack);
+  --text-muted: var(--color-grey-darkgrey);
+  --heading: var(--color-primary-oceanblue);
+  --link: var(--color-secondary-electricblue);
+  --rule: var(--color-grey-lightgrey);
+  --input-border: var(--color-grey-middlegrey);
+  --btn-bg: var(--color-primary-oceanblue);
+  --btn-text: var(--color-grey-white);
+  --btn-bg-hover: var(--color-secondary-marineblue);
+  --focus: var(--color-secondary-electricblue);
+  --info-bg: var(--color-semantic-iceblue);
+
+  /* masthead (Ocean Blue in both themes) */
+  --mast-bg: var(--color-primary-oceanblue);
+  --mast-text: var(--color-grey-white);
+  --mast-sub: var(--color-secondary-lightblue);
+  --mast-focus: var(--color-primary-seablue);
+
+  /* little drawings on each entry */
+  --fig-bg: var(--color-grey-white);
+  --fig-grid: #ECEDEE;
+  --fig-axis: var(--color-grey-middlegrey);
+  --fig-ghost: var(--color-grey-middlegrey);
+  --fig-stroke: var(--color-secondary-electricblue);
+  --fig-red: var(--color-school-law);
+  --fig-purple: var(--color-school-archdesign);
+  --fig-orange: var(--color-school-humanities);
+  --fig-navy: var(--color-primary-oceanblue);
+
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: var(--color-grey-ieblack);
+    --surface: var(--color-semantic-alumniblue);
+    --text: var(--color-grey-iewhite);
+    --text-muted: var(--color-grey-lightgrey);
+    --heading: var(--color-secondary-lightblue);
+    --link: var(--color-secondary-lightblue);
+    --rule: #3A3970;
+    --btn-bg: var(--color-primary-seablue);
+    --btn-text: var(--color-primary-oceanblue);
+    --btn-bg-hover: var(--color-secondary-lightblue);
+    --focus: var(--color-primary-seablue);
+    --info-bg: #23225A;
+    --fig-bg: #121133;
+    --fig-grid: #23225A;
+    --fig-ghost: var(--color-grey-lightgrey);
+    --fig-stroke: var(--color-primary-seablue);
+    --fig-red: #FF6B76;
+    --fig-purple: #D19BFF;
+    --fig-orange: var(--color-semantic-tangerine);
+    --fig-navy: var(--color-secondary-lightblue);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg: var(--color-grey-ieblack);
+  --surface: var(--color-semantic-alumniblue);
+  --text: var(--color-grey-iewhite);
+  --text-muted: var(--color-grey-lightgrey);
+  --heading: var(--color-secondary-lightblue);
+  --link: var(--color-secondary-lightblue);
+  --rule: #3A3970;
+  --btn-bg: var(--color-primary-seablue);
+  --btn-text: var(--color-primary-oceanblue);
+  --btn-bg-hover: var(--color-secondary-lightblue);
+  --focus: var(--color-primary-seablue);
+  --info-bg: #23225A;
+  --fig-bg: #121133;
+  --fig-grid: #23225A;
+  --fig-ghost: var(--color-grey-lightgrey);
+  --fig-stroke: var(--color-primary-seablue);
+  --fig-red: #FF6B76;
+  --fig-purple: #D19BFF;
+  --fig-orange: var(--color-semantic-tangerine);
+  --fig-navy: var(--color-secondary-lightblue);
+  color-scheme: dark;
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--typography-fontfamilies-primary);
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text);
+  background: var(--page-bg);
+}
+a { color: var(--link); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.skip {
+  position: absolute; left: 12px; top: -80px; z-index: 10;
+  background: var(--color-grey-white); color: var(--color-primary-oceanblue);
+  padding: 10px 14px; border-radius: 6px; font-weight: 700;
+}
+.skip:focus { top: calc(12px + env(safe-area-inset-top, 0px)); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 48px); }
+
+/* ---------- masthead with the live Lorenz trajectory ---------- */
+.masthead {
+  position: relative;
+  overflow: hidden;
+  background: var(--mast-bg);
+  color: var(--mast-text);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.masthead :focus-visible { outline-color: var(--mast-focus); }
+.plane {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: min(62%, 760px);
+  pointer-events: none;
+}
+.plane svg { width: 100%; height: 100%; display: block; }
+.plane .ghost { fill: none; stroke: rgba(71, 191, 255, 0.16); stroke-width: 1; }
+.plane .trail { fill: none; stroke: var(--color-primary-seablue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.plane .head { fill: var(--color-grey-white); }
+/* fade the plane into the title side so text always sits on solid Ocean Blue */
+.plane::before {
+  content: "";
+  position: absolute; inset: 0 auto 0 0; width: 40%;
+  background: linear-gradient(90deg, var(--mast-bg), rgba(0, 0, 102, 0));
+  z-index: 1;
+}
+.masthead-inner {
+  position: relative; z-index: 2;
+  padding-top: 28px; padding-bottom: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
+  gap: 0 32px;
+}
+.logo { display: block; height: 64px; width: auto; }
+.masthead h1 {
+  margin: 44px 0 0;
+  font-weight: 500;
+  font-size: clamp(34px, 5.2vw, 64px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+}
+.masthead h1 .line2 { display: block; color: var(--mast-sub); }
+.masthead .sub {
+  font-family: var(--typography-fontfamilies-secondary);
+  font-size: 20px; line-height: 30px;
+  color: var(--mast-sub);
+  margin: 18px 0 0;
+  max-width: 34ch;
+}
+
+/* the live state readout */
+.readout {
+  align-self: end;
+  justify-self: end;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px;
+  margin-top: 28px;
+  padding: 10px 12px 10px 16px;
+  background: var(--mast-bg);
+  border-radius: 14px;
+  white-space: nowrap;
+}
+.state {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: 16px; line-height: 22px;
+  font-variant-numeric: tabular-nums;
+  color: var(--mast-text);
+}
+.state .eq { font-family: var(--typography-fontfamilies-secondary); font-style: italic; font-weight: 400; font-size: 20px; }
+.state .v {
+  display: grid; grid-template-columns: 3.6em;
+  padding: 2px 10px; text-align: right;
+  border-left: 2px solid var(--mast-text); border-right: 2px solid var(--mast-text);
+  border-radius: 6px;
+}
+.pause {
+  appearance: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 8px 14px;
+  border: 1.5px solid var(--mast-sub); border-radius: 20px;
+  background: transparent; color: var(--mast-text);
+  font: 700 13px/1 var(--typography-fontfamilies-primary);
+  cursor: pointer;
+}
+.pause:hover { background: rgba(255, 255, 255, 0.1); }
+.pause svg { width: 12px; height: 12px; fill: currentColor; }
+
+@media (max-width: 760px) {
+  .masthead { display: flex; flex-direction: column; }
+  .masthead-inner { grid-template-columns: 1fr; padding-bottom: 0; }
+  .readout { justify-self: start; padding-left: 0; margin-top: 20px; }
+  .plane { position: relative; order: 2; width: 100%; height: 200px; }
+  .plane::before { display: none; }
+  .logo { height: 60px; }
+  .masthead h1 { margin-top: 32px; }
+}
+
+/* ---------- toolbar ---------- */
+.toolbar {
+  display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between;
+  gap: 16px 24px;
+  padding: 32px 0 8px;
+}
+.search label {
+  display: block; font-weight: 700; font-size: 14px; line-height: 20px;
+  color: var(--text); margin-bottom: 6px;
+}
+.search input {
+  width: min(26rem, 72vw);
+  min-height: 44px; padding: 10px 14px;
+  font: 400 16px/24px var(--typography-fontfamilies-primary);
+  color: var(--text); background: var(--surface);
+  border: 1.5px solid var(--input-border); border-radius: 8px;
+}
+.search input::-webkit-search-cancel-button { display: none; }
+.count { margin: 0; color: var(--text-muted); font-size: 16px; }
+
+/* ---------- catalogue ---------- */
+main { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+.group { margin-top: 32px; }
+.group > h2 {
+  font-weight: 500; font-size: clamp(28px, 3.4vw, 36px); line-height: 1.15;
+  color: var(--heading);
+  margin: 0 0 6px;
+}
+.group > .group-note {
+  font-family: var(--typography-fontfamilies-secondary);
+  color: var(--text-muted); margin: 0 0 20px; max-width: 70ch;
+}
+.entries { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+.entry {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px 28px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  position: relative;
+}
+.entry .fig {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: var(--fig-bg);
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+.entry .fig svg { width: 100%; height: 100%; display: block; }
+.entry h3 {
+  margin: 0;
+  font-weight: 600; font-size: 24px; line-height: 30px;
+  color: var(--heading);
+}
+.entry h3 a { color: inherit; text-decoration: none; }
+.entry h3 a:hover { text-decoration: underline; text-underline-offset: 4px; }
+/* the whole card is clickable through the title link */
+.entry h3 a::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+.entry h3 a:focus-visible { outline: none; }
+.entry:has(h3 a:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.entry .summary {
+  font-family: var(--typography-fontfamilies-secondary);
+  font-size: 18px; line-height: 28px;
+  margin: 10px 0 0; max-width: 64ch;
+}
+.entry .parts { margin: 16px 0 0; }
+.entry .parts h4 { margin: 0 0 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--text); }
+.entry .parts ol { margin: 0; padding-left: 1.4em; display: grid; gap: 2px; font-size: 16px; }
+.entry .parts li::marker { color: var(--text-muted); font-weight: 600; }
+.entry .parts .ref { color: var(--text-muted); font-size: 14px; }
+.entry .actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn {
+  position: relative; z-index: 1;   /* sits above the card-wide link */
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 10px 20px;
+  border-radius: 8px;
+  background: var(--btn-bg); color: var(--btn-text);
+  font: 800 15px/1 var(--typography-fontfamilies-primary);
+  text-decoration: none;
+}
+.btn:hover { background: var(--btn-bg-hover); }
+.btn-quiet {
+  background: transparent; color: var(--link);
+  border: 1.5px solid var(--input-border);
+  font-weight: 700; font-size: 13px;
+}
+.btn-quiet:hover { background: var(--info-bg); }
+@media (max-width: 700px) {
+  .entry { grid-template-columns: 1fr; padding: 18px; }
+  .entry .fig { aspect-ratio: 16 / 9; }
+}
+
+.empty {
+  margin-top: 32px; padding: 24px;
+  background: var(--info-bg); border-radius: 12px;
+}
+.empty p { margin: 0 0 12px; }
+
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 24px 0 calc(32px + env(safe-area-inset-bottom, 0px));
+  color: var(--text-muted); font-size: 14px; line-height: 20px;
+}
+footer p { margin: 0 0 6px; max-width: 80ch; }
+</style>
 </head>
 <body>
+<a class="skip" href="#catalogue">Skip to the animations</a>
 
-    <h1>Mathematical Animations</h1>
-    <p>Select an animation below to view it live:</p>
+<header class="masthead">
+  <div class="plane" aria-hidden="true">
+    <svg id="plane" viewBox="0 0 760 420" preserveAspectRatio="xMidYMid slice"></svg>
+  </div>
+  <div class="wrap masthead-inner">
+    <div>
+      <img class="logo" src="https://static.ie.edu/IT/logos/Corporate/Logo_Corporate_Full_White_Filled.svg" alt="IE University" height="64">
+      <h1>Nonlinear Dynamics<span class="line2">interactive animations</span></h1>
+      <p class="sub">Iterate maps, follow trajectories along level curves and watch strange attractors take shape. Every animation runs in your browser, with nothing to install.</p>
+    </div>
+    <div class="readout">
+      <div class="state" aria-hidden="true">
+        <span class="eq">(x, y, z) =</span>
+        <span class="v"><span id="sx">1.0</span><span id="sy">1.0</span><span id="sz">1.0</span></span>
+      </div>
+      <button class="pause" id="pause" type="button" aria-pressed="false">
+        <svg viewBox="0 0 12 12" aria-hidden="true" id="pause-icon"><rect x="1" y="1" width="3.5" height="10"/><rect x="7.5" y="1" width="3.5" height="10"/></svg>
+        <span id="pause-label">Pause animation</span>
+      </button>
+    </div>
+  </div>
+</header>
 
-    <ul>
-        <li><a href="Graphical_iteration_visualizer.html">Graphical Iteration Visualizer</a></li>
-        <li><a href="gradient_system_level_curves.html">Gradient System Level Curves</a></li>
-        <li><a href="hamiltonian_level_curves.html">Hamiltonian Level Curves</a></li>
-        <li><a href="henon-map.html">Hénon Map</a></li>
-        <li><a href="lorenz_attractor.html">Lorenz Attractor</a></li>
-    </ul>
+<main id="catalogue" tabindex="-1">
+  <div class="wrap">
+    <div class="toolbar">
+      <div class="search" role="search">
+        <label for="q">Find an animation</label>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="e.g. cobweb, saddle, attractor" aria-describedby="count">
+      </div>
+      <p class="count" id="count" aria-live="polite"></p>
+    </div>
 
+    <div id="list"></div>
+
+    <div class="empty" id="empty" hidden>
+      <p id="empty-text"></p>
+      <button class="btn" id="clear" type="button">Clear search</button>
+    </div>
+
+    <noscript>
+      <section class="group">
+        <h2>All animations</h2>
+        <ul>
+          <li><a href="Graphical_iteration_visualizer.html">Graphical iteration</a></li>
+          <li><a href="henon-map.html">The Hénon map</a></li>
+          <li><a href="gradient_system_level_curves.html">Gradient systems and level curves</a></li>
+          <li><a href="hamiltonian_level_curves.html">Hamiltonian systems and level curves</a></li>
+          <li><a href="lorenz_attractor.html">The Lorenz attractor</a></li>
+        </ul>
+      </section>
+    </noscript>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Made for the Nonlinear Dynamics course, IE University.</p>
+    <p>Works best in a recent version of Chrome, Edge, Firefox or Safari, on a computer or a tablet.</p>
+    <p id="repo-line" hidden><a id="repo-link" href="#">Source code on GitHub</a></p>
+  </div>
+</footer>
+
+<script>
+/* =====================================================================
+   THE CATALOGUE
+   To add an animation: put its .html file in the repository and add one
+   object to ANIMATIONS. Entries appear grouped as in GROUPS, in order.
+   File names are case-sensitive on GitHub Pages: copy them exactly.
+   ===================================================================== */
+const GROUPS = [
+  { id: "maps", name: "Maps: discrete time",
+    note: "Systems that jump from one state to the next, xₙ₊₁ = f(xₙ): fixed points, cycles and chaos one step at a time." },
+  { id: "flows", name: "Flows: continuous time",
+    note: "Systems of differential equations ẋ = f(x), seen through level curves, phase portraits and attractors." }
+];
+
+const ANIMATIONS = [
+  {
+    file: "Graphical_iteration_visualizer.html",
+    title: "Graphical iteration",
+    group: "maps",
+    summary: "Iterate a one-dimensional map xₙ₊₁ = f(xₙ) with a cobweb diagram, bouncing between the graph of f and the diagonal y = x, and see whether an orbit settles on a fixed point, falls into a cycle or wanders.",
+    keywords: "cobweb diagram staircase orbit fixed point stability cycle period one-dimensional map iteration logistic",
+    figure: "cobweb"
+  },
+  {
+    file: "henon-map.html",
+    title: "The Hénon map",
+    group: "maps",
+    summary: "A two-dimensional map, (x, y) ↦ (1 − ax² + y, bx), that stretches and folds the plane. Iterate it and watch a strange attractor with a layered, fractal structure appear.",
+    keywords: "henon strange attractor fractal chaos two-dimensional map stretching folding",
+    figure: "henon"
+  },
+  {
+    file: "gradient_system_level_curves.html",
+    title: "Gradient systems and level curves",
+    group: "flows",
+    summary: "In a gradient system, trajectories flow downhill on a potential V, crossing its level curves at right angles and settling at the minima.",
+    keywords: "gradient system potential level curves orthogonal trajectories equilibrium minimum lyapunov phase portrait",
+    figure: "gradient"
+  },
+  {
+    file: "hamiltonian_level_curves.html",
+    title: "Hamiltonian systems and level curves",
+    group: "flows",
+    summary: "A Hamiltonian system conserves its energy H, so every trajectory runs along a level curve of H: closed orbits around centres, and separatrices through saddle points.",
+    keywords: "hamiltonian conservative energy conserved level curves centre center saddle separatrix pendulum phase portrait",
+    figure: "hamiltonian"
+  },
+  {
+    file: "lorenz_attractor.html",
+    title: "The Lorenz attractor",
+    group: "flows",
+    summary: "Three coupled differential equations, first written as a model of convection, whose trajectories wind around a butterfly-shaped strange attractor. Starting points that are very close soon follow completely different paths.",
+    keywords: "lorenz strange attractor chaos butterfly sensitive dependence initial conditions three-dimensional 3d differential equations",
+    figure: "lorenz"
+  }
+];
+
+/* Optional: paste the repository address here to show a link in the footer. */
+const REPO_URL = "";
+
+/* =====================================================================
+   Small decorative drawings, one per entry, on a 200 × 200 canvas.
+   Add a new key here, or leave "figure" out of an entry for a plain grid.
+   ===================================================================== */
+function lorenzPath(n, dt, skip) {
+  const s = 10, r = 28, b = 8 / 3;
+  const F = ([x, y, z]) => [s * (y - x), x * (r - z) - y, x * y - b * z];
+  let p = [1, 1, 1];
+  const out = [];
+  for (let i = 0; i < n + skip; i++) {
+    const k1 = F(p);
+    const k2 = F(p.map((v, j) => v + dt / 2 * k1[j]));
+    const k3 = F(p.map((v, j) => v + dt / 2 * k2[j]));
+    const k4 = F(p.map((v, j) => v + dt * k3[j]));
+    p = p.map((v, j) => v + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
+    if (i >= skip) out.push(p);
+  }
+  return out;
+}
+const f1 = v => v.toFixed(1);
+function arrowHead(x, y, dx, dy, color, size = 7) {
+  const L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  const pts = [[x + ux * size, y + uy * size],
+               [x - uy * size * 0.55, y + ux * size * 0.55],
+               [x + uy * size * 0.55, y - ux * size * 0.55]];
+  return `<polygon points="${pts.map(q => q.map(f1).join(",")).join(" ")}" fill="${color}"/>`;
+}
+
+const FIGURES = {
+  grid: () => "",
+
+  cobweb: () => {
+    const r = 2.9, f = x => r * x * (1 - x);
+    const X = x => 22 + 160 * x, Y = y => 178 - 160 * y;
+    let curve = "";
+    for (let i = 0; i <= 80; i++) { const x = i / 80; curve += `${i ? "L" : "M"}${f1(X(x))},${f1(Y(f(x)))}`; }
+    let x = 0.08, web = `M${f1(X(x))},${f1(Y(0))}`;
+    for (let k = 0; k < 16; k++) { const y = f(x); web += `L${f1(X(x))},${f1(Y(y))}L${f1(X(y))},${f1(Y(y))}`; x = y; }
+    const xs = 1 - 1 / r;
+    return `
+      <path d="M22,18V178H182" fill="none" stroke="var(--fig-axis)" stroke-width="1.2"/>
+      <line x1="22" y1="178" x2="182" y2="18" stroke="var(--fig-ghost)" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <path d="${curve}" fill="none" stroke="var(--fig-stroke)" stroke-width="2.5"/>
+      <path d="${web}" fill="none" stroke="var(--fig-red)" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="${f1(X(xs))}" cy="${f1(Y(xs))}" r="4" fill="var(--fig-navy)"/>`;
+  },
+
+  henon: () => {
+    const a = 1.4, b = 0.3;
+    let x = 0, y = 0, d = "";
+    for (let i = 0; i < 4200; i++) {
+      const nx = 1 - a * x * x + y, ny = b * x; x = nx; y = ny;
+      if (i > 100) d += `M${f1(100 + x * 64)},${f1(100 - y * 215)}h0.01`;
+    }
+    return `
+      <line x1="0" y1="100" x2="200" y2="100" stroke="var(--fig-axis)" stroke-width="1"/>
+      <line x1="100" y1="0" x2="100" y2="200" stroke="var(--fig-axis)" stroke-width="1"/>
+      <path d="${d}" fill="none" stroke="var(--fig-stroke)" stroke-width="1.5" stroke-linecap="round"/>`;
+  },
+
+  gradient: () => {
+    // V = x² + 2y²; the flow −∇V follows the parabolas y = c·x², at right angles to the ellipses
+    const s = 60, cx = 100, cy = 100;
+    let out = "";
+    for (const k of [0.18, 0.55, 1.05, 1.75]) {
+      out += `<ellipse cx="${cx}" cy="${cy}" rx="${f1(s * Math.sqrt(k))}" ry="${f1(s * Math.sqrt(k / 2))}" fill="none" stroke="var(--fig-stroke)" stroke-width="1.6"/>`;
+    }
+    const traj = (c, sign) => {
+      const u = c === 0 ? 1.75 : (-1 + Math.sqrt(1 + 14 * c * c)) / (4 * c * c);
+      const xmax = Math.sqrt(u);
+      let d = "";
+      for (let i = 0; i <= 30; i++) {
+        const x = sign * xmax * (1 - i / 30 * 0.97), y = c * x * x;
+        d += `${i ? "L" : "M"}${f1(cx + s * x)},${f1(cy - s * y)}`;
+      }
+      const xm = sign * xmax * 0.55, ym = c * xm * xm;
+      return `<path d="${d}" fill="none" stroke="var(--fig-red)" stroke-width="2"/>` +
+        arrowHead(cx + s * xm, cy - s * ym, -2 * xm, 4 * ym, "var(--fig-red)");
+    };
+    for (const c of [0, 0.6, -0.6]) { out += traj(c, 1) + traj(c, -1); }
+    const vy = s * Math.sqrt(1.75 / 2);
+    out += `<line x1="${cx}" y1="${f1(cy - vy)}" x2="${cx}" y2="${cy - 3}" stroke="var(--fig-red)" stroke-width="2"/>` +
+           `<line x1="${cx}" y1="${f1(cy + vy)}" x2="${cx}" y2="${cy + 3}" stroke="var(--fig-red)" stroke-width="2"/>` +
+           arrowHead(cx, cy - vy * 0.5, 0, 1, "var(--fig-red)") + arrowHead(cx, cy + vy * 0.5, 0, -1, "var(--fig-red)");
+    return out + `<circle cx="${cx}" cy="${cy}" r="4.5" fill="var(--fig-navy)"/>`;
+  },
+
+  hamiltonian: () => {
+    // pendulum: H = y²/2 + 1 − cos x
+    const X = x => 100 + x * 23, Y = y => 100 - y * 30;
+    const branch = (E, x0, x1, sign) => {
+      let d = "";
+      for (let i = 0; i <= 120; i++) {
+        const x = x0 + (x1 - x0) * i / 120;
+        const y = sign * Math.sqrt(Math.max(0, 2 * (E - 1 + Math.cos(x))));
+        d += `${i ? "L" : "M"}${f1(X(x))},${f1(Y(y))}`;
+      }
+      return d;
+    };
+    let out = "";
+    for (const E of [0.3, 0.85, 1.45]) {
+      const xm = Math.acos(1 - E);
+      out += `<path d="${branch(E, -xm, xm, 1)}${branch(E, xm, -xm, -1).replace("M", "L")}Z" fill="none" stroke="var(--fig-stroke)" stroke-width="1.8"/>`;
+    }
+    for (const E of [2.9]) {
+      out += `<path d="${branch(E, -4.4, 4.4, 1)}" fill="none" stroke="var(--fig-purple)" stroke-width="1.8"/>`;
+      out += `<path d="${branch(E, -4.4, 4.4, -1)}" fill="none" stroke="var(--fig-purple)" stroke-width="1.8"/>`;
+    }
+    out += `<path d="${branch(2, -4.4, 4.4, 1)}" fill="none" stroke="var(--fig-orange)" stroke-width="2.6"/>`;
+    out += `<path d="${branch(2, -4.4, 4.4, -1)}" fill="none" stroke="var(--fig-orange)" stroke-width="2.6"/>`;
+    out += `<circle cx="${X(0)}" cy="${Y(0)}" r="4" fill="var(--fig-navy)"/>`;
+    for (const x of [-Math.PI, Math.PI]) out += `<circle cx="${f1(X(x))}" cy="${Y(0)}" r="4" fill="var(--fig-bg)" stroke="var(--fig-navy)" stroke-width="2"/>`;
+    return out;
+  },
+
+  lorenz: () => {
+    const pts = lorenzPath(5200, 0.01, 300);
+    const d = pts.map((p, i) => `${i ? "L" : "M"}${f1(100 + p[0] * 4.2)},${f1(192 - p[2] * 3.7)}`).join("");
+    return `<path d="${d}" fill="none" stroke="var(--fig-stroke)" stroke-width="0.7" stroke-linejoin="round"/>`;
+  }
+};
+
+function figureSVG(kind) {
+  let grid = "";
+  for (let i = 10; i <= 200; i += 20) {
+    grid += `<line x1="${i}" y1="0" x2="${i}" y2="200" stroke="var(--fig-grid)" stroke-width="1"/>`;
+    grid += `<line x1="0" y1="${i}" x2="200" y2="${i}" stroke="var(--fig-grid)" stroke-width="1"/>`;
+  }
+  const draw = (FIGURES[kind] || FIGURES.grid)();
+  return `<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">${grid}${draw}</svg>`;
+}
+
+/* ---------- rendering ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fold = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const listEl = document.getElementById("list");
+const countEl = document.getElementById("count");
+const emptyEl = document.getElementById("empty");
+const emptyText = document.getElementById("empty-text");
+const q = document.getElementById("q");
+const figCache = {};
+
+function entryHTML(a) {
+  const ps = a.parts || [];
+  const parts = ps.length > 1 || ps.some(p => p.ref)
+    ? `<div class="parts"><h4>Inside</h4><ol>${ps.map(p =>
+        `<li>${esc(p.name)}${p.ref ? ` <span class="ref">(${esc(p.ref)})</span>` : ""}</li>`).join("")}</ol></div>`
+    : "";
+  const kind = a.figure || "grid";
+  figCache[kind] = figCache[kind] || figureSVG(kind);
+  return `<li class="entry">
+    <div class="fig">${figCache[kind]}</div>
+    <div>
+      <h3><a href="${esc(a.file)}">${esc(a.title)}</a></h3>
+      <p class="summary">${esc(a.summary)}</p>
+      ${parts}
+      <div class="actions">
+        <a class="btn" href="${esc(a.file)}" tabindex="-1" aria-hidden="true">Open animation</a>
+        <a class="btn btn-quiet" href="${esc(a.file)}" target="_blank" rel="noopener">Open in a new tab<span class="sr-only">: ${esc(a.title)}</span></a>
+      </div>
+    </div>
+  </li>`;
+}
+
+const haystack = a => fold([a.title, a.summary, a.keywords || "", ...(a.parts || []).map(p => p.name + " " + (p.ref || ""))].join(" "));
+
+function render() {
+  const terms = fold(q.value).split(/\s+/).filter(Boolean);
+  const match = a => terms.every(t => haystack(a).includes(t));
+  let html = "", shown = 0;
+  const known = new Set(GROUPS.map(g => g.id));
+  for (const g of [...GROUPS, { id: "_other", name: "More animations", note: "" }]) {
+    const items = ANIMATIONS.filter(a => (g.id === "_other" ? !known.has(a.group) : a.group === g.id) && match(a));
+    if (!items.length) continue;
+    shown += items.length;
+    html += `<section class="group" aria-labelledby="h-${g.id}">
+      <h2 id="h-${g.id}">${esc(g.name)}</h2>
+      ${g.note ? `<p class="group-note">${esc(g.note)}</p>` : ""}
+      <ul class="entries">${items.map(entryHTML).join("")}</ul>
+    </section>`;
+  }
+  listEl.innerHTML = html;
+  const total = ANIMATIONS.length;
+  countEl.textContent = terms.length
+    ? `${shown} of ${total} ${total === 1 ? "animation" : "animations"} match`
+    : `${total} ${total === 1 ? "animation" : "animations"}`;
+  emptyEl.hidden = shown > 0;
+  if (!shown) emptyText.textContent = `No animation matches “${q.value.trim()}”. Try a broader word, such as “map” or “attractor”.`;
+}
+q.addEventListener("input", render);
+document.getElementById("clear").addEventListener("click", () => { q.value = ""; render(); q.focus(); });
+if (REPO_URL) {
+  document.getElementById("repo-link").href = REPO_URL;
+  document.getElementById("repo-line").hidden = false;
+}
+render();
+
+/* =====================================================================
+   The masthead: a trajectory of the Lorenz system (σ = 10, ρ = 28,
+   β = 8/3), drawn live over a faint copy of the whole attractor.
+   ===================================================================== */
+(function () {
+  const svg = document.getElementById("plane");
+  const NS = "http://www.w3.org/2000/svg";
+  const cx = 480, base = 335, sc = 6.3;           // x horizontal, z vertical
+  const X = p => cx + p[0] * sc, Y = p => base - p[2] * sc;
+  const mk = (tag, cls) => { const el = document.createElementNS(NS, tag); el.setAttribute("class", cls); svg.appendChild(el); return el; };
+
+  const ghost = mk("path", "ghost");
+  ghost.setAttribute("d", lorenzPath(9000, 0.008, 400).map((p, i) => `${i ? "L" : "M"}${f1(X(p))},${f1(Y(p))}`).join(""));
+
+  const SEG = 7, TRAIL = 1400;
+  const segs = Array.from({ length: SEG }, (_, i) => {
+    const el = mk("polyline", "trail");
+    el.setAttribute("opacity", ((i + 1) / SEG).toFixed(2));
+    return el;
+  });
+  const head = mk("circle", "head"); head.setAttribute("r", "5");
+
+  const sx = document.getElementById("sx"), sy = document.getElementById("sy"), sz = document.getElementById("sz");
+  const fmt = v => v.toFixed(1).replace("-", "−");
+
+  const s = 10, r = 28, b = 8 / 3, dt = 0.004, RATE = 0.9; // model time units per second
+  const F = ([x, y, z]) => [s * (y - x), x * (r - z) - y, x * y - b * z];
+  let p = [1, 1, 1];
+  const trail = [];
+  function step() {
+    const k1 = F(p);
+    const k2 = F(p.map((v, j) => v + dt / 2 * k1[j]));
+    const k3 = F(p.map((v, j) => v + dt / 2 * k2[j]));
+    const k4 = F(p.map((v, j) => v + dt * k3[j]));
+    p = p.map((v, j) => v + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
+    trail.push([X(p), Y(p)]);
+    if (trail.length > TRAIL) trail.shift();
+  }
+  function draw() {
+    const n = trail.length, per = Math.ceil(n / SEG);
+    segs.forEach((el, i) => {
+      const part = trail.slice(i * per, Math.min(n, (i + 1) * per + 1));
+      el.setAttribute("points", part.map(q => q.map(f1).join(",")).join(" "));
+    });
+    const last = trail[n - 1];
+    if (last) { head.setAttribute("cx", f1(last[0])); head.setAttribute("cy", f1(last[1])); }
+    sx.textContent = fmt(p[0]); sy.textContent = fmt(p[1]); sz.textContent = fmt(p[2]);
+  }
+
+  const btn = document.getElementById("pause");
+  const label = document.getElementById("pause-label");
+  const icon = document.getElementById("pause-icon");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let playing = !reduce.matches, last = null, raf = null, acc = 0;
+
+  // start already on the attractor, with a trail behind
+  for (let i = 0; i < 2600; i++) step();
+  draw();
+
+  function setButton() {
+    btn.setAttribute("aria-pressed", String(!playing));
+    label.textContent = playing ? "Pause animation" : "Play animation";
+    icon.innerHTML = playing
+      ? '<rect x="1" y="1" width="3.5" height="10"/><rect x="7.5" y="1" width="3.5" height="10"/>'
+      : '<polygon points="2,1 11,6 2,11"/>';
+  }
+  function frame(now) {
+    if (last !== null) {
+      acc += Math.min(now - last, 100) / 1000 * RATE / dt;
+      while (acc >= 1) { step(); acc -= 1; }
+      draw();
+    }
+    last = now;
+    raf = playing ? requestAnimationFrame(frame) : null;
+  }
+  btn.addEventListener("click", () => {
+    playing = !playing; last = null; setButton();
+    if (playing && !raf) raf = requestAnimationFrame(frame);
+  });
+  document.addEventListener("visibilitychange", () => { last = null; });
+  setButton();
+  if (playing) raf = requestAnimationFrame(frame);
+})();
+</script>
 </body>
 </html>
